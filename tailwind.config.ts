@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Neobrutalism color palette
+        "electric-blue": "hsl(var(--electric-blue))",
+        "hot-pink": "hsl(var(--hot-pink))",
+        "lime-green": "hsl(var(--lime-green))",
+        "bright-yellow": "hsl(var(--bright-yellow))",
+        "neon-orange": "hsl(var(--neon-orange))",
+        "purple-punch": "hsl(var(--purple-punch))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -62,6 +69,14 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        "brutal": "var(--shadow-brutal)",
+        "brutal-lg": "var(--shadow-brutal-lg)", 
+        "brutal-xl": "var(--shadow-brutal-xl)",
+      },
+      fontFamily: {
+        mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
       },
       keyframes: {
         "accordion-down": {

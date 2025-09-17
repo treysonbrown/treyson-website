@@ -2,41 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Neobrutalism Design System - Bold, High Contrast, Sharp Edges */
 
 @layer base {
   :root {
+    /* Base colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 0%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Neobrutalism color palette */
+    --electric-blue: 210 100% 50%;
+    --hot-pink: 330 100% 50%;
+    --lime-green: 120 100% 50%;
+    --bright-yellow: 60 100% 50%;
+    --neon-orange: 30 100% 50%;
+    --purple-punch: 270 100% 50%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Card system */
+    --card: var(--background);
+    --card-foreground: var(--foreground);
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Interactive elements */
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --primary: var(--electric-blue);
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: var(--hot-pink);
+    --secondary-foreground: 0 0% 100%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: var(--lime-green);
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Borders and inputs - always black for neobrutalism */
+    --border: 0 0% 0%;
+    --input: var(--background);
+    --ring: var(--electric-blue);
+
+    /* No border radius - keep things sharp */
+    --radius: 0rem;
+
+    /* Neobrutalism shadows */
+    --shadow-brutal: 4px 4px 0px hsl(var(--border));
+    --shadow-brutal-lg: 8px 8px 0px hsl(var(--border));
+    --shadow-brutal-xl: 12px 12px 0px hsl(var(--border));
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +116,77 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-mono;
+  }
+}
+
+/* Neobrutalism utility classes */
+@layer utilities {
+  .neobrutalist-shadow {
+    box-shadow: var(--shadow-brutal);
+  }
+
+  .neobrutalist-shadow-lg {
+    box-shadow: var(--shadow-brutal-lg);
+  }
+
+  .neobrutalist-shadow-xl {
+    box-shadow: var(--shadow-brutal-xl);
+  }
+
+  .border-brutal {
+    border: 3px solid hsl(var(--border));
+  }
+
+  .border-brutal-thick {
+    border: 5px solid hsl(var(--border));
+  }
+
+  .text-electric-blue {
+    color: hsl(var(--electric-blue));
+  }
+
+  .text-hot-pink {
+    color: hsl(var(--hot-pink));
+  }
+
+  .text-lime-green {
+    color: hsl(var(--lime-green));
+  }
+
+  .text-bright-yellow {
+    color: hsl(var(--bright-yellow));
+  }
+
+  .text-neon-orange {
+    color: hsl(var(--neon-orange));
+  }
+
+  .text-purple-punch {
+    color: hsl(var(--purple-punch));
+  }
+
+  .bg-electric-blue {
+    background-color: hsl(var(--electric-blue));
+  }
+
+  .bg-hot-pink {
+    background-color: hsl(var(--hot-pink));
+  }
+
+  .bg-lime-green {
+    background-color: hsl(var(--lime-green));
+  }
+
+  .bg-bright-yellow {
+    background-color: hsl(var(--bright-yellow));
+  }
+
+  .bg-neon-orange {
+    background-color: hsl(var(--neon-orange));
+  }
+
+  .bg-purple-punch {
+    background-color: hsl(var(--purple-punch));
   }
 }
