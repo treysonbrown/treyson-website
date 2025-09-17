@@ -16,8 +16,8 @@ export const ProjectCard = ({ title, description, tech, liveUrl, githubUrl, imag
     <Card className="bg-background border-brutal neobrutalist-shadow hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
       {image && (
         <div className="border-b-3 border-black">
-          <img 
-            src={image} 
+          <img
+            src={image}
             alt={title}
             className="w-full h-48 object-cover"
           />
@@ -28,22 +28,22 @@ export const ProjectCard = ({ title, description, tech, liveUrl, githubUrl, imag
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="font-mono text-sm leading-relaxed">{description}</p>
-        
+
         <div className="flex flex-wrap gap-2">
           {tech.map((item, index) => (
-            <span 
+            <span
               key={index}
-              className="bg-lime-green text-black px-3 py-1 text-xs font-bold uppercase tracking-wide border-2 border-black"
+              className="bg-blue text-black px-3 py-1 text-xs font-bold uppercase tracking-wide border-2 border-black"
             >
               {item}
             </span>
           ))}
         </div>
-        
+
         <div className="flex gap-3 pt-2">
           {liveUrl && (
-            <Button 
-              variant="brutal-yellow" 
+            <Button
+              variant="brutal"
               size="sm"
               asChild
             >
@@ -53,10 +53,10 @@ export const ProjectCard = ({ title, description, tech, liveUrl, githubUrl, imag
               </a>
             </Button>
           )}
-          
+
           {githubUrl && (
-            <Button 
-              variant="brutal-outline" 
+            <Button
+              variant="brutal-outline"
               size="sm"
               asChild
             >
