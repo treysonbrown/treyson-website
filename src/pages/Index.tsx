@@ -59,7 +59,7 @@ const Index = () => {
               I am a full-stack software engineer
             </p>
             <p className="text-xl md:text-2xl font-mono max-w-2xl mx-auto">
-              I am intersted in cli tools, linux, and vim
+              I am intersted in AI, cli tools, linux, and vim
             </p>
           </div>
 
@@ -89,7 +89,7 @@ const Index = () => {
             </h2>
             <div className="space-y-4 font-mono text-lg text-white">
               <p>
-                I graduate Dixie Tech for software engineering December 2025
+                I’m graduating from Dixie Tech in software engineering in December 2025.
               </p>
               <p>
                 Start up founder in{" "}
@@ -102,7 +102,7 @@ const Index = () => {
                   Sandbox
                 </a>.
 
-                We are currently working with a University to pilot a post-award grant managment system.
+                I am building post-award finacial managment tools for grants.
               </p>
               <p>
                 I have been interested in computers as long as I can remember. I daily drive vim and Arch Linux and love tinkering.
