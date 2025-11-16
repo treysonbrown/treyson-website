@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 interface NavbarProps {
   showHomeLink?: boolean;
@@ -7,7 +8,7 @@ interface NavbarProps {
 
 interface NavItem {
   label: string;
-  href: string;
+  to: string;
 }
 
 interface NavLinksProps {
@@ -25,14 +26,14 @@ const NavLinks = ({ orientation = "horizontal", items, onLinkClick }: NavLinksPr
   return (
     <div className={wrapperClasses}>
       {items.map((item) => (
-        <a
-          key={item.href}
-          href={item.href}
+        <Link
+          key={item.to}
+          to={item.to}
           className={`font-bold uppercase tracking-wide transition-colors hover:text-electric-blue ${linkAccent}`}
           onClick={onLinkClick}
         >
           {item.label}
-        </a>
+        </Link>
       ))}
     </div>
   );
@@ -41,11 +42,11 @@ const NavLinks = ({ orientation = "horizontal", items, onLinkClick }: NavLinksPr
 const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navItems: NavItem[] = [
-    showHomeLink ? { label: "Home", href: "/" } : null,
-    { label: "About", href: useAbsolutePaths ? "/#about" : "#about" },
-    { label: "Projects", href: useAbsolutePaths ? "/#projects" : "#projects" },
-    { label: "Contact", href: useAbsolutePaths ? "/#contact" : "#contact" },
-    { label: "Blog", href: "/blog" },
+    showHomeLink ? { label: "Home", to: "/" } : null,
+    { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
+    { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
+    { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
+    { label: "Blog", to: "/blog" },
   ].filter((item): item is NavItem => Boolean(item));
 
   useEffect(() => {
