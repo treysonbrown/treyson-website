@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { NeobrutalistSection } from "@/components/NeobrutalistSection";
 import { SkillCard } from "@/components/SkillCard";
 import { ProjectCard } from "@/components/ProjectCard";
@@ -12,6 +14,19 @@ import { Carousel } from "@/components/ui/carousel";
 import Navbar from "@/components/Navbar";
 
 const Index = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const sectionId = location.hash.replace("#", "");
+    if (!sectionId) return;
+
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
+
   const projects = [
     {
       title: "Pharma EDU",

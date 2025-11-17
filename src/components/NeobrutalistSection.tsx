@@ -9,10 +9,8 @@ interface NeobrutalistSectionProps {
 
 export const NeobrutalistSection = ({ children, className, id }: NeobrutalistSectionProps) => {
   return (
-    <section id={id} className={cn("py-16 px-4", className)}>
-      <div className="max-w-6xl mx-auto">
-        {children}
-      </div>
+    <section id={id} className={cn("py-16 px-4 scroll-mt-28 md:scroll-mt-40", className)}>
+      <div className="max-w-6xl mx-auto">{children}</div>
     </section>
   );
 };
