@@ -9,6 +9,7 @@ import { Github, Linkedin, Mail, Code, Zap, Globe } from "lucide-react";
 import ecommerceProject from "@/assets/ecommerce-project.jpg";
 import pharmaEduImage from "@/assets/pharma-edu.png";
 import codeForgeImage from "@/assets/CodeForge.png";
+import thesisImage from "@/assets/Thesis.png"
 import dashboardProject from "@/assets/dashboard-project.jpg";
 import { Carousel } from "@/components/ui/carousel";
 import Navbar from "@/components/Navbar";
@@ -28,6 +29,13 @@ const Index = () => {
   }, [location.hash]);
 
   const projects = [
+    {
+      title: "Thesis ERP",
+      description: "Grant financial management tools for PIs and OSPs. Email me at tr3ysonb@gmail.com for demo access.",
+      tech: ["React", "Typescript", "FastAPI", "PostgreSQL", "SQLmodel", "Alembic"],
+      liveUrl: "https://thesiserp.com",
+      image: thesisImage,
+    },
     {
       title: "Pharma EDU",
       description: "Software for pharamcy students to learn.",
