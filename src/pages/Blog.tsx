@@ -3,11 +3,18 @@ import { BlogCard } from "@/components/BlogCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, PenTool } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { blogPosts } from "@/data/blogPosts";
 
 const Blog = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar showHomeLink={true} useAbsolutePaths={true} />
