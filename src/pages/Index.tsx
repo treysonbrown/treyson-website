@@ -91,7 +91,7 @@ const Index = () => {
           <div className="space-y-6">
             <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-wide text-white">About Me</h2>
             <div className="space-y-4 font-mono text-lg text-white">
-              <p>I’m graduating from Dixie Tech in software engineering in December 2025.</p>
+              <p>I’m graduating from Dixie Tech’s Software Engineering program on December 17, 2025.</p>
               <p>
                 Start up founder in{" "}
                 <a
