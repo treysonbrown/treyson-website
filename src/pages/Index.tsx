@@ -67,7 +67,7 @@ const Index = () => {
       `}</style>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-[90vh] flex flex-col justify-center items-center px-6 border-b-4 border-black bg-white">
+      <section className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black bg-white">
         {/* Engineering Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
 
