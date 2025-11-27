@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { MouseEvent, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Terminal } from "lucide-react";
 
 // --- CONFIGURATION ---
@@ -18,6 +18,7 @@ interface NavItem {
 const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
 
   const navItems: NavItem[] = [
     showHomeLink ? { label: "Home", to: "/" } : null,
@@ -48,6 +49,23 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
     };
   }, [isMenuOpen]);
 
+  const scrollToSection = (sectionId: string) => {
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handleNavClick = (event: MouseEvent<HTMLAnchorElement>, target: string) => {
+    const hashIndex = target.indexOf("#");
+    if (hashIndex === -1) return;
+    const hash = target.slice(hashIndex);
+    if (location.pathname === "/" && location.hash === hash) {
+      event.preventDefault();
+      scrollToSection(hash.replace("#", ""));
+    }
+  };
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
@@ -73,6 +91,7 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
               <Link
                 key={item.to}
                 to={item.to}
+                onClick={(event) => handleNavClick(event, item.to)}
                 className="relative font-mono font-bold text-sm group"
               >
                 {/* The text */}
@@ -132,7 +151,10 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
               <Link
                 key={item.to}
                 to={item.to}
-                onClick={() => setIsMenuOpen(false)}
+                onClick={(event) => {
+                  handleNavClick(event, item.to);
+                  setIsMenuOpen(false);
+                }}
                 className="block"
               >
                 <div

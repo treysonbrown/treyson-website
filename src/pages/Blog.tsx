@@ -39,11 +39,11 @@ const Blog = () => {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-black mb-4">
-              Engineering <br /> & Strategy
+              Blog
             </h1>
 
             <p className="text-xl font-mono text-gray-600 max-w-2xl mx-auto">
-              Documenting the process of building Thesis ERP, learning Rust, and configuring Vim.
+              Documenting the process of building Thesis ERP and other thoughts on tech and AI.
             </p>
 
             <div className="pt-4">
@@ -81,9 +81,6 @@ const Blog = () => {
                     {/* Card Header */}
                     <div className="p-6 border-b-4 border-black bg-gray-50 group-hover:bg-white transition-colors">
                       <div className="flex justify-between items-start mb-4">
-                        <span className="font-mono text-xs font-bold bg-black text-white px-2 py-1">
-                          ID: {String(post.id).padStart(3, '0')}
-                        </span>
                         <ArrowRight className={`w-6 h-6 transform -rotate-45 group-hover:rotate-0 transition-transform duration-300`} style={{ color: ACCENT_COLOR }} />
                       </div>
                       <h2 className="text-2xl font-black uppercase leading-tight group-hover:underline decoration-4 underline-offset-4 decoration-black">

@@ -21,7 +21,7 @@ const BlogPost = () => {
         <p className="font-mono text-xl">Object not found in database.</p>
         <Link to="/blog">
           <Button className="border-2 border-black bg-white text-black hover:bg-black hover:text-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            RETURN_TO_INDEX
+            RETURN TO BLOGS
           </Button>
         </Link>
       </div>
@@ -43,7 +43,7 @@ const BlogPost = () => {
           <div className="mb-12 space-y-8">
             <Link to="/blog" className="inline-flex items-center gap-2 font-mono text-sm font-bold uppercase hover:underline">
               <ArrowLeft size={16} />
-              Back to Index
+              Back to Blogs
             </Link>
 
             <div className="space-y-4">
