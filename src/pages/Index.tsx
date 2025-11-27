@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Github, Linkedin, Mail, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
 
 // Assuming you have these images.
 import thesisImage from "@/assets/Thesis.png";
@@ -15,23 +16,15 @@ const ACCENT_COLOR = "#ff4499";
 const Index = () => {
   const location = useLocation();
 
-  const scrollToSection = (sectionId: string) => {
-    const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   useEffect(() => {
     if (!location.hash) return;
-    const sectionId = location.hash.replace("#", "");
-    scrollToSection(sectionId);
+    scrollToSection(extractSectionId(location.hash));
   }, [location.hash]);
 
-  const handleContactClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (location.hash === "#contact") {
+  const handleSectionLinkClick = (event: MouseEvent<HTMLAnchorElement>, hash: string) => {
+    if (location.hash === hash) {
       event.preventDefault();
-      scrollToSection("contact");
+      scrollToSection(extractSectionId(hash));
     }
   };
 
@@ -94,8 +87,11 @@ const Index = () => {
             </div>
 
             <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center">
-              Treyson&nbsp;&nbsp;Brown
-              <span style={{ color: ACCENT_COLOR }}>.</span>
+              <span className="block sm:inline">Treyson</span>
+              <span className="block sm:inline sm:ml-3">
+                Brown
+                <span style={{ color: ACCENT_COLOR }}>.</span>
+              </span>
             </h1>
           </motion.div>
 
@@ -131,6 +127,7 @@ const Index = () => {
           >
             <a
               href="#projects"
+              onClick={(event) => handleSectionLinkClick(event, "#projects")}
               className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-black border-2 border-black font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1"
             >
               View My Work
@@ -138,7 +135,7 @@ const Index = () => {
             </a>
             <Link
               to={{ pathname: "/", hash: "#contact" }}
-              onClick={handleContactClick}
+              onClick={(event) => handleSectionLinkClick(event, "#contact")}
               className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-black transition-all duration-200 bg-white border-2 border-black font-mono hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               Contact Me
@@ -148,7 +145,7 @@ const Index = () => {
       </section>
 
       {/* --- ABOUT SECTION --- */}
-      <section id="about" className="py-24 bg-black text-white border-b-4 border-black relative overflow-hidden">
+      <section id="about" className="py-24 bg-black text-white border-b-4 border-black relative overflow-hidden scroll-mt-28 md:scroll-mt-36">
         {/* Subtle grid in background of black section */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(#333_1px,transparent_1px),linear-gradient(90deg,#333_1px,transparent_1px)] bg-[size:20px_20px]" />
 
@@ -205,7 +202,7 @@ const Index = () => {
                   <Cpu style={{ color: ACCENT_COLOR }} />
                     // TIMELINE
                 </h3>
-                <div className="border-l-2 border-gray-800 pl-8 space-y-10 font-mono">
+                <div className="border-l-2 border-gray-800 pl-8 space-y-10 font-mono ml-6 sm:ml-8 md:ml-0">
                   <div className="relative">
                     <div className="absolute -left-[37px] top-1 w-4 h-4 border-2 border-black" style={{ backgroundColor: ACCENT_COLOR }} />
                     <p className="text-xs font-bold tracking-widest text-gray-500 mb-1">CURRENT</p>
@@ -228,7 +225,7 @@ const Index = () => {
       {/* --- PROJECTS SECTION --- */}
       <section
         id="projects"
-        className="py-24 px-6 border-b-4 border-black bg-gray-50"
+        className="py-24 px-6 border-b-4 border-black bg-gray-50 scroll-mt-28 md:scroll-mt-36"
       >
         <div className="container mx-auto">
 
@@ -323,7 +320,7 @@ const Index = () => {
       </section>
 
       {/* --- CONTACT SECTION --- */}
-      <section id="contact" className="py-24 bg-white relative">
+      <section id="contact" className="py-24 bg-white relative scroll-mt-28 md:scroll-mt-36">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
         <div className="container mx-auto px-6 text-center max-w-4xl relative z-10">

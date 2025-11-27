@@ -1,6 +1,7 @@
 import { MouseEvent, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Terminal } from "lucide-react";
+import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
 
 // --- CONFIGURATION ---
 const ACCENT_COLOR = "#ff4499";
@@ -49,20 +50,13 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
     };
   }, [isMenuOpen]);
 
-  const scrollToSection = (sectionId: string) => {
-    const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   const handleNavClick = (event: MouseEvent<HTMLAnchorElement>, target: string) => {
     const hashIndex = target.indexOf("#");
     if (hashIndex === -1) return;
     const hash = target.slice(hashIndex);
     if (location.pathname === "/" && location.hash === hash) {
       event.preventDefault();
-      scrollToSection(hash.replace("#", ""));
+      scrollToSection(extractSectionId(hash));
     }
   };
 
