@@ -53,7 +53,7 @@ const Blog = () => {
                 style={{ textDecorationColor: ACCENT_COLOR }}
               >
                 <ArrowLeft size={20} />
-                Return to Base
+                Return Home
               </Link>
             </div>
           </motion.div>

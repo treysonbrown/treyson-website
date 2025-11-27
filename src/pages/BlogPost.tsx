@@ -124,18 +124,6 @@ const BlogPost = () => {
               }
             })}
           </div>
-
-          {/* Footer Call to Action */}
-          <div className="mt-16 p-8 bg-gray-100 border-4 border-black text-center space-y-6">
-            <h3 className="text-2xl font-bold uppercase">Enjoyed this read?</h3>
-            <p className="font-mono text-gray-600">Connect with me on LinkedIn to discuss this further.</p>
-            <Button size="lg" className="rounded-none font-bold text-lg bg-black text-white hover:bg-gray-800" asChild>
-              <a href="https://linkedin.com/in/treyson-brown" target="_blank" rel="noreferrer">
-                Discuss on LinkedIn <Share2 className="ml-2 w-4 h-4" />
-              </a>
-            </Button>
-          </div>
-
         </article>
       </main>
     </div>
