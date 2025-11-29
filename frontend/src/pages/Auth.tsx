@@ -30,8 +30,7 @@ const Auth = () => {
       {/* Engineering Grid Background */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
-      <main className="relative z-10 container mx-auto px-6 h-[calc(100vh-80px)] flex flex-col items-center justify-center">
-
+      <main className="relative z-10 min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-lg space-y-6">
           {/* Back Button */}
           <button
@@ -39,7 +38,7 @@ const Auth = () => {
             onClick={() => navigate(-1)}
             className="group flex items-center gap-2 font-mono text-sm font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors"
           >
-            <div className="bg-white border-2 border-black p-1 group-hover:-translate-x-1 transition-transform">
+            <div className="bg-white border-2 border-black p-15 group-hover:-translate-x-1 transition-transform">
               <ArrowLeft className="h-4 w-4" />
             </div>
             Back
@@ -52,10 +51,6 @@ const Auth = () => {
             <div className="absolute top-0 left-0 w-full h-2 bg-black" />
 
             <div className="mb-8 space-y-2">
-              <div className="flex items-center gap-2 text-red-600 font-mono text-xs font-bold uppercase tracking-widest border border-red-200 bg-red-50 w-fit px-2 py-1">
-                <ShieldAlert className="h-4 w-4" />
-                Admin_Access_Only
-              </div>
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
                 Identify <br /> Yourself
               </h1>
