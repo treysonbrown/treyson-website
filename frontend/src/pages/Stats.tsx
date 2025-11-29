@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Github, RefreshCw, Star, Users, CalendarDays, Clock, Trash2, ArrowUpRight, Terminal } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays } from "date-fns";
@@ -17,7 +17,15 @@ import { getGitHubRepos, getGitHubUser } from "@/lib/github";
 import { useWorkLog, type WorkLogEntry } from "@/hooks/useWorkLog";
 import { supabase } from "@/lib/supabaseClient";
 
+type TimeframeFilter = "7d" | "30d" | "all" | "custom";
+
 const ACCENT_COLOR = "#ff4499";
+const TIMEFRAME_OPTIONS: { label: string; value: TimeframeFilter }[] = [
+  { label: "7D Sprint", value: "7d" },
+  { label: "30D", value: "30d" },
+  { label: "All Time", value: "all" },
+  { label: "Custom", value: "custom" },
+];
 
 const formatDisplayDate = (isoDate: string) => {
   try {
@@ -47,6 +55,11 @@ const Stats = () => {
   const [description, setDescription] = useState("");
   const [tag, setTag] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("all");
+  const [timeframeFilter, setTimeframeFilter] = useState<TimeframeFilter>("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   const {
     entries,
@@ -84,10 +97,60 @@ const Stats = () => {
       .slice(0, 3);
   }, [repoQuery.data]);
 
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    entries.forEach((entry) => {
+      const normalized = entry.tag?.trim();
+      if (normalized) {
+        tags.add(normalized);
+      }
+    });
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [entries]);
+
+  const timeframeBounds = useMemo(() => {
+    if (timeframeFilter === "all") {
+      return { startDate: null as string | null, endDate: null as string | null };
+    }
+
+    if (timeframeFilter === "custom") {
+      return {
+        startDate: customStartDate || null,
+        endDate: customEndDate || null,
+      };
+    }
+
+    const windowSize = timeframeFilter === "7d" ? 6 : 29;
+    const startDate = format(subDays(new Date(), windowSize), "yyyy-MM-dd");
+    return { startDate, endDate: null as string | null };
+  }, [customEndDate, customStartDate, timeframeFilter]);
+
+  const filteredEntries = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return entries.filter((entry) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        entry.description?.toLowerCase().includes(normalizedSearch) ||
+        entry.tag?.toLowerCase().includes(normalizedSearch);
+
+      const matchesTag = selectedTagFilter === "all" || entry.tag === selectedTagFilter;
+
+      const matchesTimeframe = (() => {
+        if (!timeframeBounds.startDate && !timeframeBounds.endDate) return true;
+        if (timeframeBounds.startDate && entry.work_date < timeframeBounds.startDate) return false;
+        if (timeframeBounds.endDate && entry.work_date > timeframeBounds.endDate) return false;
+        return true;
+      })();
+
+      return matchesSearch && matchesTag && matchesTimeframe;
+    });
+  }, [entries, searchTerm, selectedTagFilter, timeframeBounds]);
+
   const groupedEntries = useMemo(() => {
     const map = new Map<string, { totalHours: number; items: WorkLogEntry[] }>();
 
-    entries.forEach((entry) => {
+    filteredEntries.forEach((entry) => {
       if (!map.has(entry.work_date)) {
         map.set(entry.work_date, { totalHours: 0, items: [] });
       }
@@ -99,7 +162,19 @@ const Stats = () => {
     });
 
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [entries]);
+  }, [filteredEntries]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim()) count += 1;
+    if (selectedTagFilter !== "all") count += 1;
+    if (timeframeFilter === "7d" || timeframeFilter === "30d") {
+      count += 1;
+    } else if (timeframeFilter === "custom" && (customStartDate || customEndDate)) {
+      count += 1;
+    }
+    return count;
+  }, [customEndDate, customStartDate, searchTerm, selectedTagFilter, timeframeFilter]);
 
   const chartData = useMemo(() => {
     const totalsByDate = entries.reduce<Record<string, number>>((acc, entry) => {
@@ -116,6 +191,14 @@ const Stats = () => {
       };
     });
   }, [entries]);
+
+  const handleTimeframeChange = (value: TimeframeFilter) => {
+    setTimeframeFilter(value);
+    if (value !== "custom") {
+      setCustomStartDate("");
+      setCustomEndDate("");
+    }
+  };
 
   const handleAddEntry = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -359,7 +442,7 @@ const Stats = () => {
                   type="submit"
                   disabled={isWorkLogLoading || isWorkLogSubmitting}
                   className="h-12 px-8 bg-black text-white hover:bg-[color:var(--accent)] hover:text-white rounded-none border-2 border-black font-bold uppercase tracking-widest transition-all"
-                  style={{ '--accent': ACCENT_COLOR } as React.CSSProperties}
+                  style={{ '--accent': ACCENT_COLOR } as CSSProperties}
                 >
                   {isWorkLogSubmitting ? "SAVING..." : "COMMIT LOG"}
                 </Button>
@@ -376,11 +459,119 @@ const Stats = () => {
             <span className="font-mono text-sm mb-2 text-gray-500">// HISTORY</span>
           </div>
 
+          <div className="space-y-4 border-2 border-black bg-white p-4 md:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr]">
+              <div className="space-y-2">
+                <Label htmlFor="log-search" className="font-mono font-bold uppercase">Search Log</Label>
+                <Input
+                  id="log-search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Ship, debug, planning..."
+                  className="border-2 border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)]"
+                  style={{ '--accent': ACCENT_COLOR } as CSSProperties}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-mono font-bold uppercase">Timeframe</Label>
+                <div className="flex flex-wrap gap-2">
+                  {TIMEFRAME_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleTimeframeChange(option.value)}
+                      className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
+                        timeframeFilter === option.value ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
+                      }`}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+                {timeframeFilter === "custom" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="custom-start" className="font-mono text-[11px] uppercase">Start Date</Label>
+                      <Input
+                        id="custom-start"
+                        type="date"
+                        value={customStartDate}
+                        onChange={(event) => setCustomStartDate(event.target.value)}
+                        className="border-2 border-dashed border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-black"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="custom-end" className="font-mono text-[11px] uppercase">End Date</Label>
+                      <Input
+                        id="custom-end"
+                        type="date"
+                        value={customEndDate}
+                        min={customStartDate || undefined}
+                        onChange={(event) => setCustomEndDate(event.target.value)}
+                        className="border-2 border-dashed border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-black"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-mono font-bold uppercase">Tag</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedTagFilter("all")}
+                    className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
+                      selectedTagFilter === "all" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
+                    }`}
+                  >
+                    All Tags
+                  </Button>
+                  {availableTags.length === 0 ? (
+                    <span className="text-xs font-mono text-gray-500 self-center">No tags logged yet</span>
+                  ) : (
+                    availableTags.map((tagOption) => (
+                      <Button
+                        key={tagOption}
+                        type="button"
+                        onClick={() => setSelectedTagFilter(tagOption)}
+                        className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
+                          selectedTagFilter === tagOption ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
+                        }`}
+                      >
+                        {tagOption}
+                      </Button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-xs uppercase tracking-widest text-gray-500">
+              <span>{activeFilterCount === 0 ? "Showing all entries" : `${activeFilterCount} filters active`}</span>
+              {activeFilterCount > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedTagFilter("all");
+                    handleTimeframeChange("all");
+                  }}
+                  className="rounded-none border-2 border-black bg-white text-black hover:bg-gray-100"
+                >
+                  Reset Filters
+                </Button>
+              )}
+            </div>
+          </div>
+
           {isWorkLogLoading ? (
             <Skeleton className="h-40 w-full border-2 border-black" />
           ) : groupedEntries.length === 0 ? (
             <div className="border-2 border-dashed border-gray-400 p-12 text-center font-mono text-gray-500">
-              NO_DATA_FOUND
+              {entries.length === 0 ? "NO_DATA_FOUND" : "NO_LOGS_MATCH_FILTERS"}
             </div>
           ) : (
             <div className="space-y-8">
