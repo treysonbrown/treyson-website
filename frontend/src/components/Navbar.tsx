@@ -26,6 +26,7 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
     { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
     { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
     { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
+    { label: "Stats", to: "/stats" },
     { label: "Blog", to: "/blog" },
   ].filter((item): item is NavItem => Boolean(item));
 
