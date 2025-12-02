@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import { GITHUB_USERNAME } from "@/lib/config";
 import { getGitHubRepos, getGitHubUser } from "@/lib/github";
 import { useWorkLog, type WorkLogEntry } from "@/hooks/useWorkLog";
@@ -76,6 +80,12 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
     position: { left: number; top: number };
     placement: "above" | "below";
   } | null>(null);
+  const [selectedDay, setSelectedDay] = useState<{
+    date: Date;
+    data: { totalHours: number; descs: string[] } | undefined;
+  } | null>(null);
+  const selectedDescriptions = selectedDay?.data?.descs ?? [];
+  const selectedTotalHours = selectedDay?.data?.totalHours ?? 0;
 
   return (
     <div className="w-full overflow-x-auto pb-4">
@@ -129,6 +139,7 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
                     placement
                   });
                 }}
+                onClick={() => setSelectedDay({ date: day, data })}
                 onMouseLeave={() => setHoveredDay(null)}
               />
             );
@@ -189,6 +200,38 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
             </motion.div>
           )}
         </AnimatePresence>
+        <Dialog
+          open={Boolean(selectedDay)}
+          onOpenChange={(open) => {
+            if (!open) setSelectedDay(null);
+          }}
+        >
+          <DialogContent className="border-2 border-black bg-white px-6 pt-10 pb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-mono text-[13px] max-w-xl min-w-[320px]">
+            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+              <span className="font-bold uppercase text-[10px] text-gray-500 tracking-[0.3em]">
+                {selectedDay ? format(selectedDay.date, "MMM do, yyyy") : ""}
+              </span>
+              <span
+                className="font-black text-sm"
+                style={{ color: ACCENT_COLOR }}
+              >
+                {selectedTotalHours.toFixed(1)} hrs
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-2 max-h-[320px] overflow-y-auto">
+              {selectedDescriptions.length ? (
+                selectedDescriptions.map((desc, i) => (
+                  <p key={i} className="text-xs leading-relaxed break-words">
+                    - {desc}
+                  </p>
+                ))
+              ) : (
+                <p className="text-xs text-gray-400 italic">No activity logged.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500">

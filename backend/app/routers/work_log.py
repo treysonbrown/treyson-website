@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from decouple import config
 
+from sqlalchemy.exc import OperationalError
+
 from app.database import get_db
 from models import WorkLogEntry, User
 from app.auth import CurrentUser, get_current_user, get_optional_user
@@ -53,7 +55,14 @@ class WorkLogBulkCreate(BaseModel):
 
 
 def ensure_user_record(db: Session, current_user: CurrentUser) -> User:
-    user = db.get(User, current_user.id)
+    try:
+        user = db.get(User, current_user.id)
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to reach the database. Please try again shortly.",
+        ) from exc
+
     if user:
         return user
 
