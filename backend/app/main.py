@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from decouple import config
 
 from app.routers import work_log, user
@@ -22,10 +22,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# app.add_middleware(
-#     ProxyHeadersMiddleware,
-#     trusted_hosts="*",
-# )
+app.add_middleware(
+    ProxyHeadersMiddleware,
+    trusted_hosts="*",  # trust Railway/ingress proxy so X-Forwarded-Proto is honored
+)
 
 app.add_middleware(
     CORSMiddleware,
