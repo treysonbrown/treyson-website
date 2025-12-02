@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from decouple import config
 
 from app.routers import work_log, user
@@ -21,6 +22,8 @@ app = FastAPI(
     description="A FastAPI project with PostgreSQL and Alembic",
     version="1.0.0"
 )
+
+app.add_middleware(ProxyHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
