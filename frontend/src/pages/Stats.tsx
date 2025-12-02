@@ -1,9 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Github, RefreshCw, Star, Users, CalendarDays, Clock, Trash2, ArrowUpRight, Terminal } from "lucide-react";
+import { Github, RefreshCw, Star, Users, CalendarDays, Trash2, ArrowUpRight, Terminal, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { format, parseISO, subDays } from "date-fns";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { format, parseISO, subDays, eachDayOfInterval, subYears, isSameDay, getDay, startOfWeek } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer, Tooltip } from "recharts";
 
 import Navbar from "@/components/Navbar";
@@ -12,40 +11,253 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import { GITHUB_USERNAME } from "@/lib/config";
 import { getGitHubRepos, getGitHubUser } from "@/lib/github";
 import { useWorkLog, type WorkLogEntry } from "@/hooks/useWorkLog";
 import { supabase } from "@/lib/supabaseClient";
 
-type TimeframeFilter = "7d" | "30d" | "all" | "custom";
-
 const ACCENT_COLOR = "#ff4499";
-const TIMEFRAME_OPTIONS: { label: string; value: TimeframeFilter }[] = [
-  { label: "7D Sprint", value: "7d" },
-  { label: "30D", value: "30d" },
-  { label: "All Time", value: "all" },
-  { label: "Custom", value: "custom" },
-];
+const TOOLTIP_WIDTH = 250;
+const TOOLTIP_HEIGHT = 170;
+const TOOLTIP_MARGIN = 12;
 
-const formatDisplayDate = (isoDate: string) => {
-  try {
-    return format(parseISO(isoDate), "MMMM d, yyyy");
-  } catch {
-    return isoDate;
-  }
+// Helper to determine intensity color based on hours
+const getIntensityColor = (hours: number) => {
+  if (hours === 0) return "#f3f4f6"; // gray-100
+  if (hours <= 2) return `${ACCENT_COLOR}33`; // 20% opacity
+  if (hours <= 4) return `${ACCENT_COLOR}66`; // 40% opacity
+  if (hours <= 6) return `${ACCENT_COLOR}99`; // 60% opacity
+  return ACCENT_COLOR; // 100%
 };
 
-// Custom Brutalist Tooltip for the chart
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="border-2 border-black bg-white p-2 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <p className="font-bold">{label}</p>
-        <p style={{ color: ACCENT_COLOR }}>{payload[0].value} hours</p>
-      </div>
-    );
+type VelocityChartEntry = {
+  label: string;
+  workDate: Date;
+  hours: number;
+  descs: string[];
+};
+
+type VelocityTooltipPayload = {
+  payload?: VelocityChartEntry;
+};
+
+type VelocityTooltipProps = {
+  active?: boolean;
+  payload?: VelocityTooltipPayload[];
+};
+
+type VelocityBarClickArg = VelocityChartEntry | { payload?: VelocityChartEntry };
+
+type DayDetail = {
+  totalHours: number;
+  descs: string[];
+};
+
+const VelocityTooltip = ({ active, payload }: VelocityTooltipProps) => {
+  if (!active || !payload?.length) {
+    return null;
   }
-  return null;
+  const data = payload[0]?.payload;
+  if (!data) {
+    return null;
+  }
+  const descriptions = data.descs;
+  return (
+    <div className="border-2 border-black bg-white p-2 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-xs">
+      <div className="flex justify-between items-center">
+        <p className="font-bold">{format(data.workDate, "MMM do")}</p>
+        <p className="font-black text-sm" style={{ color: ACCENT_COLOR }}>
+          {data.hours.toFixed(1)} hrs
+        </p>
+      </div>
+      <div className="space-y-1 max-h-[120px] overflow-hidden font-mono text-xs leading-tight">
+        {descriptions.length ? (
+          descriptions.map((desc: string, index: number) => (
+            <p key={index} className="truncate">
+              - {desc}
+            </p>
+          ))
+        ) : (
+          <p className="text-gray-400 italic">No activity logged.</p>
+        )}
+      </div>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-gray-400">Click for details</p>
+    </div>
+  );
+};
+
+// --- COMPONENT: CONTRIBUTION GRAPH (HEATMAP) ---
+type ContributionGraphProps = {
+  entries: WorkLogEntry[];
+  onDaySelect?: (date: Date, data: DayDetail | undefined) => void;
+};
+
+const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => {
+  // 1. Generate the last 365 days
+  const today = new Date();
+  const startDate = subYears(today, 1);
+
+  // Align start date to the previous Sunday so the grid looks square
+  const gridStartDate = startOfWeek(startDate);
+
+  const days = useMemo(() => {
+    return eachDayOfInterval({ start: gridStartDate, end: today });
+  }, [gridStartDate, today]);
+
+  // 2. Map entries to a lookup object for O(1) access
+  const entriesByDate = useMemo(() => {
+    const map = new Map<string, { totalHours: number; descs: string[] }>();
+    entries.forEach(entry => {
+      const dateKey = format(parseISO(entry.work_date), 'yyyy-MM-dd');
+      if (!map.has(dateKey)) {
+        map.set(dateKey, { totalHours: 0, descs: [] });
+      }
+      const dayData = map.get(dateKey)!;
+      dayData.totalHours += entry.hours;
+      if (entry.description) dayData.descs.push(entry.description);
+    });
+    return map;
+  }, [entries]);
+
+  const [hoveredDay, setHoveredDay] = useState<{
+    date: Date;
+    data: { totalHours: number; descs: string[] } | undefined;
+    position: { left: number; top: number };
+    placement: "above" | "below";
+  } | null>(null);
+
+  return (
+    <div className="w-full overflow-x-auto pb-4">
+      <div className="min-w-[800px] relative">
+        {/* Days of week labels */}
+        <div className="absolute -left-8 top-0 flex flex-col justify-between h-[100px] text-[10px] font-mono text-gray-400">
+          <span>Mon</span>
+          <span>Wed</span>
+          <span>Fri</span>
+        </div>
+
+        {/* The Grid */}
+        <div
+          className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]"
+        >
+          {days.map((day) => {
+            const dateKey = format(day, 'yyyy-MM-dd');
+            const data = entriesByDate.get(dateKey);
+            const hours = data?.totalHours || 0;
+
+            return (
+              <div
+                key={dateKey}
+                className="w-[12px] h-[12px] border border-transparent hover:border-black hover:z-50 transition-all cursor-pointer relative group"
+                style={{
+                  backgroundColor: getIntensityColor(hours),
+                  borderRadius: '1px'
+                }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const cellCenterX = rect.left + rect.width / 2;
+                  const maxLeft = Math.max(TOOLTIP_MARGIN, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN);
+                  const aboveTop = rect.top - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+
+                  let left = cellCenterX - TOOLTIP_WIDTH / 2;
+                  left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
+
+                  let top = aboveTop;
+                  let placement: "above" | "below" = "above";
+                  if (aboveTop < TOOLTIP_MARGIN) {
+                    top = rect.bottom + TOOLTIP_MARGIN;
+                    placement = "below";
+                    const maxBelowTop = Math.max(TOOLTIP_MARGIN, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_MARGIN);
+                    top = Math.min(top, maxBelowTop);
+                  }
+
+                  setHoveredDay({
+                    date: day,
+                    data,
+                    position: { left, top },
+                    placement
+                  });
+                }}
+                onClick={() => onDaySelect?.(day, data)}
+                onMouseLeave={() => setHoveredDay(null)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Custom Portal/Popup for Hover */}
+        <AnimatePresence>
+          {hoveredDay && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              style={{
+                position: 'fixed',
+                left: hoveredDay.position.left,
+                top: hoveredDay.position.top,
+                zIndex: 100
+              }}
+              className="pointer-events-none w-[250px]"
+            >
+              <div className="bg-white border-2 border-black p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative">
+                {/* Arrow */}
+                <div
+                  className={
+                    hoveredDay.placement === "above"
+                      ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-black rotate-45"
+                      : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-black -rotate-45"
+                  }
+                />
+
+                <div className="relative z-10 space-y-2">
+                  <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                    <span className="font-mono text-xs font-bold uppercase text-gray-500">
+                      {format(hoveredDay.date, "MMM do, yyyy")}
+                    </span>
+                    <span
+                      className="font-black text-sm"
+                      style={{ color: ACCENT_COLOR }}
+                    >
+                      {hoveredDay.data?.totalHours.toFixed(1) || 0} hrs
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 max-h-[100px] overflow-hidden">
+                    {hoveredDay.data?.descs.length ? (
+                      hoveredDay.data.descs.map((desc, i) => (
+                        <p key={i} className="text-xs font-mono leading-tight truncate">
+                          - {desc}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-xs font-mono text-gray-400 italic">No activity logged.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500">
+        <span>Less</span>
+        <div className="flex gap-1">
+          <div className="w-[10px] h-[10px]" style={{ backgroundColor: "#f3f4f6" }} />
+          <div className="w-[10px] h-[10px]" style={{ backgroundColor: `${ACCENT_COLOR}33` }} />
+          <div className="w-[10px] h-[10px]" style={{ backgroundColor: `${ACCENT_COLOR}66` }} />
+          <div className="w-[10px] h-[10px]" style={{ backgroundColor: `${ACCENT_COLOR}99` }} />
+          <div className="w-[10px] h-[10px]" style={{ backgroundColor: ACCENT_COLOR }} />
+        </div>
+        <span>More</span>
+      </div>
+    </div>
+  );
 };
 
 const Stats = () => {
@@ -55,23 +267,19 @@ const Stats = () => {
   const [description, setDescription] = useState("");
   const [tag, setTag] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("all");
-  const [timeframeFilter, setTimeframeFilter] = useState<TimeframeFilter>("all");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
 
   const {
     entries,
     addEntry,
-    deleteEntry,
     totalHours,
     totalDaysTracked,
     isLoading: isWorkLogLoading,
     isSubmitting: isWorkLogSubmitting,
-    isDeletingEntry,
     canEdit,
   } = useWorkLog();
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; data: DayDetail | undefined } | null>(null);
+  const selectedDescriptions = selectedDay?.data?.descs ?? [];
+  const selectedTotalHours = selectedDay?.data?.totalHours ?? 0;
 
   const userQuery = useQuery({
     queryKey: ["github-user", GITHUB_USERNAME],
@@ -97,88 +305,18 @@ const Stats = () => {
       .slice(0, 3);
   }, [repoQuery.data]);
 
-  const availableTags = useMemo(() => {
-    const tags = new Set<string>();
-    entries.forEach((entry) => {
-      const normalized = entry.tag?.trim();
-      if (normalized) {
-        tags.add(normalized);
-      }
-    });
-    return Array.from(tags).sort((a, b) => a.localeCompare(b));
-  }, [entries]);
-
-  const timeframeBounds = useMemo(() => {
-    if (timeframeFilter === "all") {
-      return { startDate: null as string | null, endDate: null as string | null };
-    }
-
-    if (timeframeFilter === "custom") {
-      return {
-        startDate: customStartDate || null,
-        endDate: customEndDate || null,
-      };
-    }
-
-    const windowSize = timeframeFilter === "7d" ? 6 : 29;
-    const startDate = format(subDays(new Date(), windowSize), "yyyy-MM-dd");
-    return { startDate, endDate: null as string | null };
-  }, [customEndDate, customStartDate, timeframeFilter]);
-
-  const filteredEntries = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return entries.filter((entry) => {
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        entry.description?.toLowerCase().includes(normalizedSearch) ||
-        entry.tag?.toLowerCase().includes(normalizedSearch);
-
-      const matchesTag = selectedTagFilter === "all" || entry.tag === selectedTagFilter;
-
-      const matchesTimeframe = (() => {
-        if (!timeframeBounds.startDate && !timeframeBounds.endDate) return true;
-        if (timeframeBounds.startDate && entry.work_date < timeframeBounds.startDate) return false;
-        if (timeframeBounds.endDate && entry.work_date > timeframeBounds.endDate) return false;
-        return true;
-      })();
-
-      return matchesSearch && matchesTag && matchesTimeframe;
-    });
-  }, [entries, searchTerm, selectedTagFilter, timeframeBounds]);
-
-  const groupedEntries = useMemo(() => {
-    const map = new Map<string, { totalHours: number; items: WorkLogEntry[] }>();
-
-    filteredEntries.forEach((entry) => {
-      if (!map.has(entry.work_date)) {
-        map.set(entry.work_date, { totalHours: 0, items: [] });
-      }
-      const group = map.get(entry.work_date);
-      if (group) {
-        group.totalHours += entry.hours;
-        group.items = [...group.items, entry];
-      }
-    });
-
-    return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [filteredEntries]);
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (searchTerm.trim()) count += 1;
-    if (selectedTagFilter !== "all") count += 1;
-    if (timeframeFilter === "7d" || timeframeFilter === "30d") {
-      count += 1;
-    } else if (timeframeFilter === "custom" && (customStartDate || customEndDate)) {
-      count += 1;
-    }
-    return count;
-  }, [customEndDate, customStartDate, searchTerm, selectedTagFilter, timeframeFilter]);
-
-  const chartData = useMemo(() => {
+  const chartData = useMemo<VelocityChartEntry[]>(() => {
     const totalsByDate = entries.reduce<Record<string, number>>((acc, entry) => {
       acc[entry.work_date] = (acc[entry.work_date] ?? 0) + entry.hours;
+      return acc;
+    }, {});
+    const descriptionsByDate = entries.reduce<Record<string, string[]>>((acc, entry) => {
+      if (!acc[entry.work_date]) {
+        acc[entry.work_date] = [];
+      }
+      if (entry.description) {
+        acc[entry.work_date].push(entry.description);
+      }
       return acc;
     }, {});
 
@@ -187,17 +325,23 @@ const Stats = () => {
       const iso = format(date, "yyyy-MM-dd");
       return {
         label: format(date, "EEE"),
+        workDate: date,
         hours: totalsByDate[iso] ?? 0,
+        descs: descriptionsByDate[iso] ?? [],
       };
     });
   }, [entries]);
-
-  const handleTimeframeChange = (value: TimeframeFilter) => {
-    setTimeframeFilter(value);
-    if (value !== "custom") {
-      setCustomStartDate("");
-      setCustomEndDate("");
-    }
+  const handleVelocityBarClick = (barData?: VelocityBarClickArg) => {
+    if (!barData) return;
+    const payload = "payload" in barData ? barData.payload : barData;
+    if (!payload) return;
+    setSelectedDay({
+      date: payload.workDate,
+      data: {
+        totalHours: payload.hours,
+        descs: payload.descs,
+      },
+    });
   };
 
   const handleAddEntry = async (event: FormEvent<HTMLFormElement>) => {
@@ -230,6 +374,7 @@ const Stats = () => {
       console.log("access token:", data.session?.access_token);
     });
   }, [])
+
   return (
     <div className="min-h-screen bg-white font-sans selection:text-white">
       <Navbar showHomeLink useAbsolutePaths />
@@ -255,85 +400,12 @@ const Stats = () => {
             Work in <br /> Public<span style={{ color: ACCENT_COLOR }}>.</span>
           </h1>
           <p className="text-xl md:text-2xl font-mono text-gray-600 max-w-2xl">
-            Real-time GitHub pulse and daily development logs. Keeping strict accountability on the road to shipping Thesis.
+            Daily development logs. Keeping strict accountability on the road to shipping Thesis.
           </p>
         </section>
 
         <div className="w-full h-1 bg-black" />
 
-        {/* --- GITHUB STATS --- */}
-        <section className="space-y-8">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
-            <h2 className="text-3xl font-black uppercase flex items-center gap-3">
-              <Github className="h-8 w-8" />
-              GitHub Pulse
-            </h2>
-            <p className="font-mono text-sm text-gray-500">// SYNCED_VIA_API</p>
-          </div>
-
-          {isGithubLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full border-2 border-black" />)}
-            </div>
-          ) : githubError ? (
-            <div className="border-4 border-red-500 bg-red-50 p-6 shadow-[6px_6px_0px_0px_rgba(220,38,38,1)]">
-              <p className="font-mono text-red-700 font-bold mb-4">ERROR: COULD NOT FETCH GITHUB DATA</p>
-              <Button variant="outline" onClick={() => { userQuery.refetch(); repoQuery.refetch(); }} className="border-2 border-red-500 hover:bg-red-100 text-red-700">
-                <RefreshCw className="mr-2 h-4 w-4" /> Retry Connection
-              </Button>
-            </div>
-          ) : (
-            <>
-              {/* Top Stats Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { label: "Followers", value: userQuery.data?.followers, icon: Users },
-                  { label: "Public Repos", value: userQuery.data?.public_repos, icon: CalendarDays },
-                  { label: "Total Stars", value: totalStars, icon: Star, iconColor: "text-yellow-500" },
-                ].map((stat, idx) => (
-                  <div key={idx} className="bg-white p-6 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-                    <div className="flex justify-between items-start mb-4">
-                      <p className="font-mono text-xs font-bold uppercase tracking-wider text-gray-500">{stat.label}</p>
-                      <stat.icon className={`h-6 w-6 ${stat.iconColor || "text-gray-400"}`} />
-                    </div>
-                    <p className="text-4xl font-black">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Top Repos Grid */}
-              <div className="space-y-4 pt-4">
-                <p className="font-mono text-sm font-bold bg-black text-white inline-block px-2 py-1">TOP REPOSITORIES</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {topRepos.map((repo) => (
-                    <motion.a
-                      key={repo.id}
-                      href={repo.html_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      whileHover={{ y: -5 }}
-                      className="group flex flex-col justify-between h-full bg-white p-6 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover-accent-shadow transition-all duration-200"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-xl font-bold break-all group-hover:text-[var(--accent)]">{repo.name}</h3>
-                          <ArrowUpRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-sm font-mono text-gray-600 line-clamp-2 mb-4">
-                          {repo.description || "No description provided."}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 font-mono text-sm font-bold">
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                        {repo.stargazers_count}
-                      </div>
-                    </motion.a>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </section>
 
         {/* --- TOTALS & CHARTS --- */}
         <section className="grid lg:grid-cols-[1fr_2fr] gap-8 items-stretch">
@@ -371,11 +443,77 @@ const Stats = () => {
                     tick={{ fontFamily: 'monospace', fontSize: 12 }}
                     dy={10}
                   />
-                  <Tooltip cursor={{ fill: '#f3f4f6' }} content={<CustomTooltip />} />
-                  <Bar dataKey="hours" fill="black" radius={[0, 0, 0, 0]} barSize={40} />
+                  <Tooltip cursor={{ fill: '#f3f4f6' }} content={<VelocityTooltip />} />
+                  <Bar
+                    dataKey="hours"
+                    fill="black"
+                    radius={[0, 0, 0, 0]}
+                    barSize={40}
+                    cursor="pointer"
+                    onClick={handleVelocityBarClick}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </section>
+
+        {/* --- HEATMAP (REPLACES CHANNEL LOG) --- */}
+        <section className="space-y-8 pb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-4 border-black pb-2">
+            <div className="flex items-end gap-4">
+              <h2 className="text-4xl font-black uppercase">Momentum</h2>
+              <span className="font-mono text-sm mb-2 text-gray-500">// 1_YEAR_VIEW</span>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-xs font-bold bg-yellow-100 border border-black px-2 py-1">
+              <Activity className="w-4 h-4" />
+              HOVER FOR DETAILS
+            </div>
+          </div>
+
+            <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            {isWorkLogLoading ? (
+              <Skeleton className="h-[200px] w-full" />
+            ) : (
+              <>
+                <ContributionGraph
+                  entries={entries}
+                  onDaySelect={(date, data) => setSelectedDay({ date, data })}
+                />
+                <Dialog
+                  open={Boolean(selectedDay)}
+                  onOpenChange={(open) => {
+                    if (!open) setSelectedDay(null);
+                  }}
+                >
+                  <DialogContent className="border-2 border-black bg-white px-6 pt-10 pb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-mono text-[13px] max-w-xl min-w-[320px]">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="font-bold uppercase text-[10px] text-gray-500 tracking-[0.3em]">
+                        {selectedDay ? format(selectedDay.date, "MMM do, yyyy") : ""}
+                      </span>
+                      <span
+                        className="font-black text-sm"
+                        style={{ color: ACCENT_COLOR }}
+                      >
+                        {selectedTotalHours.toFixed(1)} hrs
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2 max-h-[320px] overflow-y-auto">
+                      {selectedDescriptions.length ? (
+                        selectedDescriptions.map((desc, i) => (
+                          <p key={i} className="text-xs leading-relaxed break-words">
+                            - {desc}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">No activity logged.</p>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
           </div>
         </section>
 
@@ -451,173 +589,6 @@ const Stats = () => {
             </form>
           </section>
         )}
-
-        {/* --- DAILY LOG HISTORY --- */}
-        <section className="space-y-8 pb-12">
-          <div className="flex items-end gap-4 border-b-4 border-black pb-2">
-            <h2 className="text-4xl font-black uppercase">Changelog</h2>
-            <span className="font-mono text-sm mb-2 text-gray-500">// HISTORY</span>
-          </div>
-
-          <div className="space-y-4 border-2 border-black bg-white p-4 md:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr_1fr]">
-              <div className="space-y-2">
-                <Label htmlFor="log-search" className="font-mono font-bold uppercase">Search Log</Label>
-                <Input
-                  id="log-search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Ship, debug, planning..."
-                  className="border-2 border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)]"
-                  style={{ '--accent': ACCENT_COLOR } as CSSProperties}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">Timeframe</Label>
-                <div className="flex flex-wrap gap-2">
-                  {TIMEFRAME_OPTIONS.map((option) => (
-                    <Button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleTimeframeChange(option.value)}
-                      className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
-                        timeframeFilter === option.value ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
-                      }`}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-                {timeframeFilter === "custom" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor="custom-start" className="font-mono text-[11px] uppercase">Start Date</Label>
-                      <Input
-                        id="custom-start"
-                        type="date"
-                        value={customStartDate}
-                        onChange={(event) => setCustomStartDate(event.target.value)}
-                        className="border-2 border-dashed border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-black"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="custom-end" className="font-mono text-[11px] uppercase">End Date</Label>
-                      <Input
-                        id="custom-end"
-                        type="date"
-                        value={customEndDate}
-                        min={customStartDate || undefined}
-                        onChange={(event) => setCustomEndDate(event.target.value)}
-                        className="border-2 border-dashed border-black rounded-none bg-white focus-visible:ring-0 focus-visible:border-black"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-mono font-bold uppercase">Tag</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => setSelectedTagFilter("all")}
-                    className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
-                      selectedTagFilter === "all" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
-                    }`}
-                  >
-                    All Tags
-                  </Button>
-                  {availableTags.length === 0 ? (
-                    <span className="text-xs font-mono text-gray-500 self-center">No tags logged yet</span>
-                  ) : (
-                    availableTags.map((tagOption) => (
-                      <Button
-                        key={tagOption}
-                        type="button"
-                        onClick={() => setSelectedTagFilter(tagOption)}
-                        className={`rounded-none border-2 border-black font-mono text-xs font-bold tracking-widest ${
-                          selectedTagFilter === tagOption ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
-                        }`}
-                      >
-                        {tagOption}
-                      </Button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-xs uppercase tracking-widest text-gray-500">
-              <span>{activeFilterCount === 0 ? "Showing all entries" : `${activeFilterCount} filters active`}</span>
-              {activeFilterCount > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedTagFilter("all");
-                    handleTimeframeChange("all");
-                  }}
-                  className="rounded-none border-2 border-black bg-white text-black hover:bg-gray-100"
-                >
-                  Reset Filters
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {isWorkLogLoading ? (
-            <Skeleton className="h-40 w-full border-2 border-black" />
-          ) : groupedEntries.length === 0 ? (
-            <div className="border-2 border-dashed border-gray-400 p-12 text-center font-mono text-gray-500">
-              {entries.length === 0 ? "NO_DATA_FOUND" : "NO_LOGS_MATCH_FILTERS"}
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {groupedEntries.map(([day, group]) => (
-                <div key={day} className="relative pl-0 md:pl-8 border-l-0 md:border-l-4 border-gray-200">
-                  <div className="md:absolute md:-left-[25px] md:top-0 h-4 w-4 bg-black rounded-none border-2 border-white outline outline-2 outline-black mb-2 md:mb-0" />
-
-                  <div className="flex items-baseline gap-4 mb-4">
-                    <h3 className="text-2xl font-black uppercase">{formatDisplayDate(day)}</h3>
-                    <span className="font-mono text-sm font-bold bg-gray-100 px-2 py-1 border border-black">{group.totalHours.toFixed(2)}h</span>
-                  </div>
-
-                  <div className="grid gap-4">
-                    {group.items.map((entry) => (
-                      <div key={entry.id} className="group bg-white border-2 border-black p-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            {entry.tag && (
-                              <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-black text-white px-2 py-0.5">
-                                {entry.tag}
-                              </span>
-                            )}
-                            <span className="text-xs font-mono text-gray-500">{entry.hours} hrs</span>
-                          </div>
-                          <p className="font-medium text-lg leading-snug">{entry.description || <span className="text-gray-400 italic">No description</span>}</p>
-                        </div>
-
-                        {canEdit && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => deleteEntry(entry.id)}
-                            disabled={isDeletingEntry}
-                            className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 transition-all"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
 
       </main>
     </div>
