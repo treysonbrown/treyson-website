@@ -34,20 +34,69 @@ const getIntensityColor = (hours: number) => {
   return ACCENT_COLOR; // 100%
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="border-2 border-black bg-white p-2 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <p className="font-bold">{label}</p>
-        <p style={{ color: ACCENT_COLOR }}>{payload[0].value} hours</p>
-      </div>
-    );
+type VelocityChartEntry = {
+  label: string;
+  workDate: Date;
+  hours: number;
+  descs: string[];
+};
+
+type VelocityTooltipPayload = {
+  payload?: VelocityChartEntry;
+};
+
+type VelocityTooltipProps = {
+  active?: boolean;
+  payload?: VelocityTooltipPayload[];
+};
+
+type VelocityBarClickArg = VelocityChartEntry | { payload?: VelocityChartEntry };
+
+type DayDetail = {
+  totalHours: number;
+  descs: string[];
+};
+
+const VelocityTooltip = ({ active, payload }: VelocityTooltipProps) => {
+  if (!active || !payload?.length) {
+    return null;
   }
-  return null;
+  const data = payload[0]?.payload;
+  if (!data) {
+    return null;
+  }
+  const descriptions = data.descs;
+  return (
+    <div className="border-2 border-black bg-white p-2 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-xs">
+      <div className="flex justify-between items-center">
+        <p className="font-bold">{format(data.workDate, "MMM do")}</p>
+        <p className="font-black text-sm" style={{ color: ACCENT_COLOR }}>
+          {data.hours.toFixed(1)} hrs
+        </p>
+      </div>
+      <div className="space-y-1 max-h-[120px] overflow-hidden font-mono text-xs leading-tight">
+        {descriptions.length ? (
+          descriptions.map((desc: string, index: number) => (
+            <p key={index} className="truncate">
+              - {desc}
+            </p>
+          ))
+        ) : (
+          <p className="text-gray-400 italic">No activity logged.</p>
+        )}
+      </div>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-gray-400">Click for details</p>
+    </div>
+  );
 };
 
 // --- COMPONENT: CONTRIBUTION GRAPH (HEATMAP) ---
-const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
+type ContributionGraphProps = {
+  entries: WorkLogEntry[];
+  onDaySelect?: (date: Date, data: DayDetail | undefined) => void;
+};
+
+const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => {
   // 1. Generate the last 365 days
   const today = new Date();
   const startDate = subYears(today, 1);
@@ -80,12 +129,6 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
     position: { left: number; top: number };
     placement: "above" | "below";
   } | null>(null);
-  const [selectedDay, setSelectedDay] = useState<{
-    date: Date;
-    data: { totalHours: number; descs: string[] } | undefined;
-  } | null>(null);
-  const selectedDescriptions = selectedDay?.data?.descs ?? [];
-  const selectedTotalHours = selectedDay?.data?.totalHours ?? 0;
 
   return (
     <div className="w-full overflow-x-auto pb-4">
@@ -139,7 +182,7 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
                     placement
                   });
                 }}
-                onClick={() => setSelectedDay({ date: day, data })}
+                onClick={() => onDaySelect?.(day, data)}
                 onMouseLeave={() => setHoveredDay(null)}
               />
             );
@@ -200,38 +243,6 @@ const ContributionGraph = ({ entries }: { entries: WorkLogEntry[] }) => {
             </motion.div>
           )}
         </AnimatePresence>
-        <Dialog
-          open={Boolean(selectedDay)}
-          onOpenChange={(open) => {
-            if (!open) setSelectedDay(null);
-          }}
-        >
-          <DialogContent className="border-2 border-black bg-white px-6 pt-10 pb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-mono text-[13px] max-w-xl min-w-[320px]">
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="font-bold uppercase text-[10px] text-gray-500 tracking-[0.3em]">
-                {selectedDay ? format(selectedDay.date, "MMM do, yyyy") : ""}
-              </span>
-              <span
-                className="font-black text-sm"
-                style={{ color: ACCENT_COLOR }}
-              >
-                {selectedTotalHours.toFixed(1)} hrs
-              </span>
-            </div>
-
-            <div className="mt-3 space-y-2 max-h-[320px] overflow-y-auto">
-              {selectedDescriptions.length ? (
-                selectedDescriptions.map((desc, i) => (
-                  <p key={i} className="text-xs leading-relaxed break-words">
-                    - {desc}
-                  </p>
-                ))
-              ) : (
-                <p className="text-xs text-gray-400 italic">No activity logged.</p>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500">
@@ -266,6 +277,9 @@ const Stats = () => {
     isSubmitting: isWorkLogSubmitting,
     canEdit,
   } = useWorkLog();
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; data: DayDetail | undefined } | null>(null);
+  const selectedDescriptions = selectedDay?.data?.descs ?? [];
+  const selectedTotalHours = selectedDay?.data?.totalHours ?? 0;
 
   const userQuery = useQuery({
     queryKey: ["github-user", GITHUB_USERNAME],
@@ -291,9 +305,18 @@ const Stats = () => {
       .slice(0, 3);
   }, [repoQuery.data]);
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo<VelocityChartEntry[]>(() => {
     const totalsByDate = entries.reduce<Record<string, number>>((acc, entry) => {
       acc[entry.work_date] = (acc[entry.work_date] ?? 0) + entry.hours;
+      return acc;
+    }, {});
+    const descriptionsByDate = entries.reduce<Record<string, string[]>>((acc, entry) => {
+      if (!acc[entry.work_date]) {
+        acc[entry.work_date] = [];
+      }
+      if (entry.description) {
+        acc[entry.work_date].push(entry.description);
+      }
       return acc;
     }, {});
 
@@ -302,10 +325,24 @@ const Stats = () => {
       const iso = format(date, "yyyy-MM-dd");
       return {
         label: format(date, "EEE"),
+        workDate: date,
         hours: totalsByDate[iso] ?? 0,
+        descs: descriptionsByDate[iso] ?? [],
       };
     });
   }, [entries]);
+  const handleVelocityBarClick = (barData?: VelocityBarClickArg) => {
+    if (!barData) return;
+    const payload = "payload" in barData ? barData.payload : barData;
+    if (!payload) return;
+    setSelectedDay({
+      date: payload.workDate,
+      data: {
+        totalHours: payload.hours,
+        descs: payload.descs,
+      },
+    });
+  };
 
   const handleAddEntry = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -406,8 +443,15 @@ const Stats = () => {
                     tick={{ fontFamily: 'monospace', fontSize: 12 }}
                     dy={10}
                   />
-                  <Tooltip cursor={{ fill: '#f3f4f6' }} content={<CustomTooltip />} />
-                  <Bar dataKey="hours" fill="black" radius={[0, 0, 0, 0]} barSize={40} />
+                  <Tooltip cursor={{ fill: '#f3f4f6' }} content={<VelocityTooltip />} />
+                  <Bar
+                    dataKey="hours"
+                    fill="black"
+                    radius={[0, 0, 0, 0]}
+                    barSize={40}
+                    cursor="pointer"
+                    onClick={handleVelocityBarClick}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -427,11 +471,48 @@ const Stats = () => {
             </div>
           </div>
 
-          <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             {isWorkLogLoading ? (
               <Skeleton className="h-[200px] w-full" />
             ) : (
-              <ContributionGraph entries={entries} />
+              <>
+                <ContributionGraph
+                  entries={entries}
+                  onDaySelect={(date, data) => setSelectedDay({ date, data })}
+                />
+                <Dialog
+                  open={Boolean(selectedDay)}
+                  onOpenChange={(open) => {
+                    if (!open) setSelectedDay(null);
+                  }}
+                >
+                  <DialogContent className="border-2 border-black bg-white px-6 pt-10 pb-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-mono text-[13px] max-w-xl min-w-[320px]">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="font-bold uppercase text-[10px] text-gray-500 tracking-[0.3em]">
+                        {selectedDay ? format(selectedDay.date, "MMM do, yyyy") : ""}
+                      </span>
+                      <span
+                        className="font-black text-sm"
+                        style={{ color: ACCENT_COLOR }}
+                      >
+                        {selectedTotalHours.toFixed(1)} hrs
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2 max-h-[320px] overflow-y-auto">
+                      {selectedDescriptions.length ? (
+                        selectedDescriptions.map((desc, i) => (
+                          <p key={i} className="text-xs leading-relaxed break-words">
+                            - {desc}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">No activity logged.</p>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
           </div>
         </section>
