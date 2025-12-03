@@ -33,6 +33,29 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
     { label: "Blog", to: "/blog" },
   ].filter((item): item is NavItem => Boolean(item));
 
+  const normalizePath = (path: string) => {
+    const trimmed = path.replace(/\/+$/, "");
+    return trimmed === "" ? "/" : trimmed;
+  };
+
+  const isNavItemActive = (item: NavItem) => {
+    const hashIndex = item.to.indexOf("#");
+    if (hashIndex >= 0) {
+      const hash = item.to.slice(hashIndex);
+      return location.hash === hash;
+    }
+
+    const targetPath = normalizePath(item.to);
+    if (targetPath === "/") {
+      return location.pathname === "/";
+    }
+
+    return (
+      location.pathname === targetPath ||
+      location.pathname.startsWith(`${targetPath}/`)
+    );
+  };
+
   // Handle scroll effect for border opacity
   useEffect(() => {
     const handleScroll = () => {
@@ -99,29 +122,41 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
           {/* DESKTOP NAV */}
           <div className="hidden md:flex items-center gap-6">
             <div className="flex items-center gap-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={(event) => handleNavClick(event, item.to)}
-                  className="relative font-mono font-bold text-sm group dark:text-zinc-300 dark:hover:text-white"
-                >
-                  {/* The text */}
-                  <span className="relative z-10">{item.label}</span>
+              {navItems.map((item) => {
+                const isActive = isNavItemActive(item);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={(event) => handleNavClick(event, item.to)}
+                    className={`relative font-mono font-bold text-sm group transition-colors dark:hover:text-white ${
+                      isActive ? "text-black dark:text-white" : "dark:text-zinc-300"
+                    }`}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {/* The text */}
+                    <span className="relative z-10">{item.label}</span>
 
-                  {/* Hover highlight effect */}
-                  <span
-                    className="absolute bottom-0 left-0 w-full h-0.5 bg-black dark:bg-white transition-all duration-300 group-hover:h-full group-hover:opacity-20 -z-0"
-                    style={{ backgroundColor: isDark ? undefined : ACCENT_COLOR }}
-                  />
+                    {/* Hover highlight effect */}
+                    <span
+                      className={`absolute bottom-0 left-0 w-full transition-all duration-300 -z-0 ${
+                        isActive
+                          ? "h-full opacity-20"
+                          : "h-0.5 opacity-0 group-hover:h-full group-hover:opacity-20"
+                      }`}
+                      style={{ backgroundColor: ACCENT_COLOR }}
+                    />
 
-                  {/* Bottom border on hover */}
-                  <span
-                    className="absolute bottom-0 left-0 w-0 h-1 bg-black dark:bg-white transition-all duration-300 group-hover:w-full"
-                    style={{ backgroundColor: isDark ? undefined : ACCENT_COLOR }}
-                  />
-                </Link>
-              ))}
+                    {/* Bottom border on hover */}
+                    <span
+                      className={`absolute bottom-0 left-0 h-1 bg-black dark:bg-white transition-all duration-300 ${
+                        isActive ? "w-full" : "w-0 group-hover:w-full"
+                      }`}
+                      style={{ backgroundColor: ACCENT_COLOR }}
+                    />
+                  </Link>
+                );
+              })}
             </div>
 
             {/* THEME TOGGLE */}
@@ -174,24 +209,34 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
 
           {/* Drawer Links */}
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-            {navItems.map((item, index) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={(event) => {
-                  handleNavClick(event, item.to);
-                  setIsMenuOpen(false);
-                }}
-                className="block"
-              >
-                <div
-                  className="w-full p-4 border-4 border-black dark:border-white bg-background dark:bg-zinc-900 dark:text-white font-black text-xl uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black group"
+            {navItems.map((item, index) => {
+              const isActive = isNavItemActive(item);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={(event) => {
+                    handleNavClick(event, item.to);
+                    setIsMenuOpen(false);
+                  }}
+                  className="block"
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  <span className="text-[#ff4499] mr-2 group-hover:text-white dark:group-hover:text-black transition-colors">0{index + 1}.</span>
-                  {item.label}
-                </div>
-              </Link>
-            ))}
+                  <div
+                    className={`w-full p-4 border-4 bg-background dark:bg-zinc-900 dark:text-white font-black text-xl uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black group ${
+                      isActive
+                        ? "border-[#ff4499] dark:border-[#ff4499]"
+                        : "border-black dark:border-white"
+                    }`}
+                  >
+                    <span className="text-[#ff4499] mr-2 group-hover:text-white dark:group-hover:text-black transition-colors">
+                      0{index + 1}.
+                    </span>
+                    {item.label}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Drawer Footer */}
