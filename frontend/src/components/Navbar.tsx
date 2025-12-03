@@ -128,10 +128,14 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center border-2 border-black dark:border-white bg-background dark:bg-zinc-900 neobrutalist-shadow dark:shadow-[4px_4px_0px_0px_#fff] transition-all hover:-translate-y-0.5 hover:neobrutalist-shadow-lg"
+              className="flex h-9 w-9 items-center justify-center border-2 border-black dark:border-white bg-background dark:bg-zinc-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
               aria-label="Toggle dark mode"
             >
-              {isMounted && (isDark ? <Sun size={18} style={{ color: ACCENT_COLOR }} /> : <Moon size={18} style={{ color: ACCENT_COLOR }} />)}
+              {isMounted && (
+                <span className="flex items-center justify-center transition-transform duration-200">
+                  {isDark ? <Sun size={18} style={{ color: ACCENT_COLOR }} /> : <Moon size={18} style={{ color: ACCENT_COLOR }} />}
+                </span>
+              )}
             </button>
           </div>
 
