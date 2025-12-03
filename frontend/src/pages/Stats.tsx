@@ -34,11 +34,16 @@ const getIntensityColor = (hours: number) => {
   return ACCENT_COLOR; // 100%
 };
 
+type EntryDetail = {
+  description: string | null;
+  tag: string | null;
+};
+
 type VelocityChartEntry = {
   label: string;
   workDate: Date;
   hours: number;
-  descs: string[];
+  entries: EntryDetail[];
 };
 
 type VelocityTooltipPayload = {
@@ -54,7 +59,7 @@ type VelocityBarClickArg = VelocityChartEntry | { payload?: VelocityChartEntry }
 
 type DayDetail = {
   totalHours: number;
-  descs: string[];
+  entries: EntryDetail[];
 };
 
 const VelocityTooltip = ({ active, payload }: VelocityTooltipProps) => {
@@ -65,7 +70,7 @@ const VelocityTooltip = ({ active, payload }: VelocityTooltipProps) => {
   if (!data) {
     return null;
   }
-  const descriptions = data.descs;
+  const entries = data.entries;
   return (
     <div className="border-2 border-black bg-white p-2 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-w-xs">
       <div className="flex justify-between items-center">
@@ -75,18 +80,22 @@ const VelocityTooltip = ({ active, payload }: VelocityTooltipProps) => {
         </p>
       </div>
       <div className="space-y-1 max-h-[120px] overflow-hidden font-mono text-xs leading-tight">
-        {descriptions.length ? (
-          descriptions.map((desc: string, index: number) => (
-            <p key={index} className="truncate">
-              - {desc}
-            </p>
+        {entries.length ? (
+          entries.map((entry, index) => (
+            <div key={index} className="space-y-1">
+              {entry.tag ? (
+                <span className="inline-block bg-gray-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.3em] text-gray-600 border border-gray-300">
+                  {entry.tag}
+                </span>
+              ) : null}
+              <p className="truncate">- {entry.description ?? "No description"}</p>
+            </div>
           ))
         ) : (
           <p className="text-gray-400 italic">No activity logged.</p>
         )}
       </div>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-gray-400">Click for details</p>
-    </div>
+    </div >
   );
 };
 
@@ -110,22 +119,25 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
 
   // 2. Map entries to a lookup object for O(1) access
   const entriesByDate = useMemo(() => {
-    const map = new Map<string, { totalHours: number; descs: string[] }>();
+    const map = new Map<string, { totalHours: number; entries: EntryDetail[] }>();
     entries.forEach(entry => {
       const dateKey = format(parseISO(entry.work_date), 'yyyy-MM-dd');
       if (!map.has(dateKey)) {
-        map.set(dateKey, { totalHours: 0, descs: [] });
+        map.set(dateKey, { totalHours: 0, entries: [] });
       }
       const dayData = map.get(dateKey)!;
       dayData.totalHours += entry.hours;
-      if (entry.description) dayData.descs.push(entry.description);
+      dayData.entries.push({
+        description: entry.description ?? null,
+        tag: entry.tag ?? null,
+      });
     });
     return map;
   }, [entries]);
 
   const [hoveredDay, setHoveredDay] = useState<{
     date: Date;
-    data: { totalHours: number; descs: string[] } | undefined;
+    data: { totalHours: number; entries: EntryDetail[] } | undefined;
     position: { left: number; top: number };
     placement: "above" | "below";
   } | null>(null);
@@ -141,110 +153,120 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
         </div>
 
         {/* The Grid */}
-        <div
-          className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]"
-        >
-          {days.map((day) => {
-            const dateKey = format(day, 'yyyy-MM-dd');
-            const data = entriesByDate.get(dateKey);
-            const hours = data?.totalHours || 0;
 
-            return (
-              <div
-                key={dateKey}
-                className="w-[12px] h-[12px] border border-transparent hover:border-black hover:z-50 transition-all cursor-pointer relative group"
-                style={{
-                  backgroundColor: getIntensityColor(hours),
-                  borderRadius: '1px'
-                }}
-                onMouseEnter={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const cellCenterX = rect.left + rect.width / 2;
-                  const maxLeft = Math.max(TOOLTIP_MARGIN, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN);
-                  const aboveTop = rect.top - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+        <div>
+          <div
+            className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]"
+          >
+            {days.map((day) => {
+              const dateKey = format(day, 'yyyy-MM-dd');
+              const data = entriesByDate.get(dateKey);
+              const hours = data?.totalHours || 0;
 
-                  let left = cellCenterX - TOOLTIP_WIDTH / 2;
-                  left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
-
-                  let top = aboveTop;
-                  let placement: "above" | "below" = "above";
-                  if (aboveTop < TOOLTIP_MARGIN) {
-                    top = rect.bottom + TOOLTIP_MARGIN;
-                    placement = "below";
-                    const maxBelowTop = Math.max(TOOLTIP_MARGIN, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_MARGIN);
-                    top = Math.min(top, maxBelowTop);
-                  }
-
-                  setHoveredDay({
-                    date: day,
-                    data,
-                    position: { left, top },
-                    placement
-                  });
-                }}
-                onClick={() => onDaySelect?.(day, data)}
-                onMouseLeave={() => setHoveredDay(null)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Custom Portal/Popup for Hover */}
-        <AnimatePresence>
-          {hoveredDay && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              style={{
-                position: 'fixed',
-                left: hoveredDay.position.left,
-                top: hoveredDay.position.top,
-                zIndex: 100
-              }}
-              className="pointer-events-none w-[250px]"
-            >
-              <div className="bg-white border-2 border-black p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative">
-                {/* Arrow */}
+              return (
                 <div
-                  className={
-                    hoveredDay.placement === "above"
-                      ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-black rotate-45"
-                      : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-black -rotate-45"
-                  }
+                  key={dateKey}
+                  className="w-[12px] h-[12px] border border-transparent hover:border-black hover:z-50 transition-all cursor-pointer relative group"
+                  style={{
+                    backgroundColor: getIntensityColor(hours),
+                    borderRadius: '1px'
+                  }}
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const cellCenterX = rect.left + rect.width / 2;
+                    const maxLeft = Math.max(TOOLTIP_MARGIN, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN);
+                    const aboveTop = rect.top - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+
+                    let left = cellCenterX - TOOLTIP_WIDTH / 2;
+                    left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
+
+                    let top = aboveTop;
+                    let placement: "above" | "below" = "above";
+                    if (aboveTop < TOOLTIP_MARGIN) {
+                      top = rect.bottom + TOOLTIP_MARGIN;
+                      placement = "below";
+                      const maxBelowTop = Math.max(TOOLTIP_MARGIN, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_MARGIN);
+                      top = Math.min(top, maxBelowTop);
+                    }
+
+                    setHoveredDay({
+                      date: day,
+                      data,
+                      position: { left, top },
+                      placement
+                    });
+                  }}
+                  onClick={() => onDaySelect?.(day, data)}
+                  onMouseLeave={() => setHoveredDay(null)}
                 />
+              );
+            })}
+          </div>
 
-                <div className="relative z-10 space-y-2">
-                  <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                    <span className="font-mono text-xs font-bold uppercase text-gray-500">
-                      {format(hoveredDay.date, "MMM do, yyyy")}
-                    </span>
-                    <span
-                      className="font-black text-sm"
-                      style={{ color: ACCENT_COLOR }}
-                    >
-                      {hoveredDay.data?.totalHours.toFixed(1) || 0} hrs
-                    </span>
-                  </div>
+          {/* Custom Portal/Popup for Hover */}
+          <AnimatePresence>
+            {hoveredDay && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                style={{
+                  position: 'fixed',
+                  left: hoveredDay.position.left,
+                  top: hoveredDay.position.top,
+                  zIndex: 100
+                }}
+                className="pointer-events-none w-[250px]"
+              >
+                <div className="bg-white border-2 border-black p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative">
+                  {/* Arrow */}
+                  <div
+                    className={
+                      hoveredDay.placement === "above"
+                        ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-black rotate-45"
+                        : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t-2 border-l-2 border-black -rotate-45"
+                    }
+                  />
 
-                  <div className="space-y-1 max-h-[100px] overflow-hidden">
-                    {hoveredDay.data?.descs.length ? (
-                      hoveredDay.data.descs.map((desc, i) => (
-                        <p key={i} className="text-xs font-mono leading-tight truncate">
-                          - {desc}
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-xs font-mono text-gray-400 italic">No activity logged.</p>
-                    )}
+                  <div className="relative z-10 space-y-2">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="font-mono text-xs font-bold uppercase text-gray-500">
+                        {format(hoveredDay.date, "MMM do, yyyy")}
+                      </span>
+                      <span
+                        className="font-black text-sm"
+                        style={{ color: ACCENT_COLOR }}
+                      >
+                        {hoveredDay.data?.totalHours.toFixed(1) || 0} hrs
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 max-h-[100px] overflow-hidden">
+                      {hoveredDay.data?.entries.length ? (
+                        hoveredDay.data.entries.map((entry, i) => (
+                          <div key={i} className="font-mono text-xs leading-tight truncate space-y-0.5">
+                            {entry.tag ? (
+                              <span className="inline-block bg-gray-100 px-2 py-0.5 text-[9px] uppercase tracking-[0.3em] text-gray-600 border border-gray-300">
+                                {entry.tag}
+                              </span>
+                            ) : null}
+                            <p className="truncate">
+                              {entry.description ?? "No description"}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs font-mono text-gray-400 italic">No activity logged.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
+      </div>
       <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500">
         <span>Less</span>
         <div className="flex gap-1">
@@ -278,7 +300,7 @@ const Stats = () => {
     canEdit,
   } = useWorkLog();
   const [selectedDay, setSelectedDay] = useState<{ date: Date; data: DayDetail | undefined } | null>(null);
-  const selectedDescriptions = selectedDay?.data?.descs ?? [];
+  const selectedEntries = selectedDay?.data?.entries ?? [];
   const selectedTotalHours = selectedDay?.data?.totalHours ?? 0;
 
   const userQuery = useQuery({
@@ -293,30 +315,21 @@ const Stats = () => {
     staleTime: 1000 * 60 * 10,
   });
 
-  const totalStars = useMemo(() => {
-    if (!repoQuery.data) return 0;
-    return repoQuery.data.reduce((sum, repo) => sum + (repo.stargazers_count ?? 0), 0);
-  }, [repoQuery.data]);
 
-  const topRepos = useMemo(() => {
-    if (!repoQuery.data) return [];
-    return [...repoQuery.data]
-      .sort((a, b) => (b.stargazers_count ?? 0) - (a.stargazers_count ?? 0))
-      .slice(0, 3);
-  }, [repoQuery.data]);
 
   const chartData = useMemo<VelocityChartEntry[]>(() => {
     const totalsByDate = entries.reduce<Record<string, number>>((acc, entry) => {
       acc[entry.work_date] = (acc[entry.work_date] ?? 0) + entry.hours;
       return acc;
     }, {});
-    const descriptionsByDate = entries.reduce<Record<string, string[]>>((acc, entry) => {
+    const detailsByDate = entries.reduce<Record<string, EntryDetail[]>>((acc, entry) => {
       if (!acc[entry.work_date]) {
         acc[entry.work_date] = [];
       }
-      if (entry.description) {
-        acc[entry.work_date].push(entry.description);
-      }
+      acc[entry.work_date].push({
+        description: entry.description ?? null,
+        tag: entry.tag ?? null,
+      });
       return acc;
     }, {});
 
@@ -327,7 +340,7 @@ const Stats = () => {
         label: format(date, "EEE"),
         workDate: date,
         hours: totalsByDate[iso] ?? 0,
-        descs: descriptionsByDate[iso] ?? [],
+        entries: detailsByDate[iso] ?? [],
       };
     });
   }, [entries]);
@@ -339,7 +352,7 @@ const Stats = () => {
       date: payload.workDate,
       data: {
         totalHours: payload.hours,
-        descs: payload.descs,
+        entries: payload.entries,
       },
     });
   };
@@ -467,11 +480,11 @@ const Stats = () => {
             </div>
             <div className="flex items-center gap-2 font-mono text-xs font-bold bg-yellow-100 border border-black px-2 py-1">
               <Activity className="w-4 h-4" />
-              HOVER FOR DETAILS
+              HOVER AND CLICK FOR DETAILS
             </div>
           </div>
 
-            <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             {isWorkLogLoading ? (
               <Skeleton className="h-[200px] w-full" />
             ) : (
@@ -500,11 +513,18 @@ const Stats = () => {
                     </div>
 
                     <div className="mt-3 space-y-2 max-h-[320px] overflow-y-auto">
-                      {selectedDescriptions.length ? (
-                        selectedDescriptions.map((desc, i) => (
-                          <p key={i} className="text-xs leading-relaxed break-words">
-                            - {desc}
-                          </p>
+                      {selectedEntries.length ? (
+                        selectedEntries.map((entry, i) => (
+                          <div key={i} className="text-xs leading-relaxed break-words space-y-1 border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                            {entry.tag ? (
+                              <span className="inline-block bg-gray-100 px-2 py-0.5 text-[10px] uppercase tracking-[0.3em] text-gray-600 border border-gray-300">
+                                {entry.tag}
+                              </span>
+                            ) : null}
+                            <p>
+                              - {entry.description ?? "No description provided."}
+                            </p>
+                          </div>
                         ))
                       ) : (
                         <p className="text-xs text-gray-400 italic">No activity logged.</p>
