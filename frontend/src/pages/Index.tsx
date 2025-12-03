@@ -1,5 +1,5 @@
 import { MouseEvent, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -11,12 +11,23 @@ const ACCENT_COLOR = "#ff4499";
 
 const Index = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     if (!location.hash) return;
     scrollToSection(extractSectionId(location.hash));
   }, [location.hash]);
+
+  useEffect(() => {
+    const state = location.state as { scrollToSection?: string } | null;
+    const targetSection = state?.scrollToSection;
+
+    if (!targetSection) return;
+
+    scrollToSection(targetSection);
+    navigate(".", { replace: true, state: null });
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const sectionIds = ["about", "projects", "contact"];

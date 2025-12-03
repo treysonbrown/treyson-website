@@ -1,5 +1,5 @@
 import { MouseEvent, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
@@ -27,6 +27,7 @@ const Navbar = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
   const navItems: NavItem[] = [
@@ -94,11 +95,23 @@ const Navbar = ({
   const handleNavClick = (event: MouseEvent<HTMLAnchorElement>, target: string) => {
     const hashIndex = target.indexOf("#");
     if (hashIndex === -1) return;
+
+    event.preventDefault();
+
     const hash = target.slice(hashIndex);
-    if (location.pathname === "/" && location.hash === hash) {
-      event.preventDefault();
-      scrollToSection(extractSectionId(hash));
+    const sectionId = extractSectionId(hash);
+
+    if (location.pathname !== "/") {
+      navigate("/", { state: { scrollToSection: sectionId } });
+      return;
     }
+
+    if (window.location.hash) {
+      const cleanPath = window.location.pathname + window.location.search;
+      window.history.replaceState(null, "", cleanPath);
+    }
+
+    scrollToSection(sectionId);
   };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
