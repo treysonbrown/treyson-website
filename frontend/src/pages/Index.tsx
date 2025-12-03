@@ -1,24 +1,62 @@
-import { MouseEvent, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { MouseEvent, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
-
-// Assuming you have these images.
-import thesisImage from "@/assets/Thesis.png";
-import pharmaEduImage from "@/assets/pharma-edu.png";
+import { projects } from "@/data/projects";
 
 // --- CONFIGURATION ---
 const ACCENT_COLOR = "#ff4499";
 
 const Index = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     if (!location.hash) return;
     scrollToSection(extractSectionId(location.hash));
   }, [location.hash]);
+
+  useEffect(() => {
+    const state = location.state as { scrollToSection?: string } | null;
+    const targetSection = state?.scrollToSection;
+
+    if (!targetSection) return;
+
+    scrollToSection(targetSection);
+    navigate(".", { replace: true, state: null });
+  }, [location.state, navigate]);
+
+  useEffect(() => {
+    const sectionIds = ["about", "projects", "contact"];
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible.length > 0) {
+          const topSection = visible[0].target as HTMLElement;
+          setActiveSection(topSection.id);
+        }
+      },
+      {
+        threshold: 0.4,
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleSectionLinkClick = (event: MouseEvent<HTMLAnchorElement>, hash: string) => {
     if (location.hash === hash) {
@@ -27,28 +65,9 @@ const Index = () => {
     }
   };
 
-  const projects = [
-    {
-      title: "Thesis ERP",
-      description: "Grant financial management for PIs. Replacing complex spreadsheets with intuitive software to track burn rates and compliance.",
-      tech: ["React", "FastAPI", "PostgreSQL", "SQLModel"],
-      liveUrl: "https://thesiserp.com",
-      status: "PRODUCTION",
-      image: thesisImage,
-    },
-    {
-      title: "Pharma EDU",
-      description: "Educational platform for pharmacy students. Features interactive quizzes, progress tracking, and material distribution.",
-      tech: ["React", "FastAPI", "PostgreSQL", "Alembic"],
-      liveUrl: "https://pharmacy.projectgnome.org/login",
-      status: "LIVE",
-      image: pharmaEduImage,
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white">
-      <Navbar />
+      <Navbar activeSection={activeSection} />
 
       {/* Dynamic Style Injection for Text Selection & Hover States */}
       <style>{`
@@ -252,7 +271,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project, index) => (
               <motion.div
-                key={index}
+                key={project.slug}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -300,7 +319,7 @@ const Index = () => {
                   </h3>
 
                   <p className="text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed mb-6 flex-grow">
-                    {project.description}
+                    {project.shortDescription}
                   </p>
 
                   <div className="space-y-4 mt-auto">
@@ -311,6 +330,15 @@ const Index = () => {
                           {t}
                         </span>
                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <Link
+                        to={`/projects/${project.slug}`}
+                        className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1 font-mono text-xs font-bold uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all dark:bg-zinc-900 dark:text-white dark:border-white"
+                      >
+                        View details
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -364,7 +392,18 @@ const Index = () => {
       </section>
 
       <footer className="py-8 bg-black dark:bg-zinc-950 text-white text-center font-mono text-sm border-t-4 border-black dark:border-white">
-        <p>&copy; {new Date().getFullYear()} Treyson Brown. Built with Nvim and Gemini 3 Pro.</p>
+        <p>
+          &copy; {new Date().getFullYear()} Treyson Brown. {" "}
+          <a
+            href="https://github.com/treysonbrown/treyson-website"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-zinc-300"
+          >
+            View my source code
+          </a>
+          .
+        </p>
       </footer>
     </div>
   );

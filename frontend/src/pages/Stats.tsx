@@ -401,6 +401,11 @@ const Stats = () => {
     });
   }, []);
 
+  // Ensure page starts at the top when navigating here.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white transition-colors">
       <Navbar showHomeLink useAbsolutePaths />
