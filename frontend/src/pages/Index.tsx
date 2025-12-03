@@ -1,14 +1,13 @@
 import { MouseEvent, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Github, Linkedin, Mail, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
+import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
 
 // Assuming you have these images.
 import thesisImage from "@/assets/Thesis.png";
 import pharmaEduImage from "@/assets/pharma-edu.png";
-import codeForgeImage from "@/assets/CodeForge.png";
 
 // --- CONFIGURATION ---
 const ACCENT_COLOR = "#ff4499";
@@ -48,7 +47,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans selection:text-white">
+    <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white">
       <Navbar />
 
       {/* Dynamic Style Injection for Text Selection & Hover States */}
@@ -61,15 +60,19 @@ const Index = () => {
           box-shadow: 8px 8px 0px 0px ${ACCENT_COLOR};
           border-color: ${ACCENT_COLOR};
         }
+        .dark .hover-accent-shadow:hover {
+          box-shadow: 8px 8px 0px 0px ${ACCENT_COLOR};
+          border-color: ${ACCENT_COLOR};
+        }
         .hover-accent-text:hover {
           color: ${ACCENT_COLOR};
         }
       `}</style>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black bg-white">
-        {/* Engineering Grid Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
+      <section className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black dark:border-white bg-background dark:bg-zinc-950 transition-colors">
+        {/* Engineering Grid Background - Inverted for Dark Mode */}
+        <div className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] dark:bg-[linear-gradient(#27272a_1px,transparent_1px),linear-gradient(90deg,#27272a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
 
         <div className="max-w-4xl w-full space-y-8 z-10 text-center">
           <motion.div
@@ -78,15 +81,13 @@ const Index = () => {
             transition={{ duration: 0.5 }}
           >
             <div className="flex justify-center mb-8">
-              <span
-                className="flex items-center gap-2 py-2 px-4 border-2 border-black font-mono text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white"
-              >
+              <span className="flex items-center gap-2 py-2 px-4 border-2 border-black dark:border-white font-mono text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] bg-card dark:bg-zinc-900 dark:text-white">
                 <span className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: ACCENT_COLOR }}></span>
                 STATUS: BUILDING
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center">
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center dark:text-white">
               <span className="block sm:inline">Treyson</span>
               <span className="block sm:inline sm:ml-3">
                 Brown
@@ -99,7 +100,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-xl md:text-2xl font-mono text-gray-600 max-w-2xl mx-auto"
+            className="text-xl md:text-2xl font-mono text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
           >
             I'm Treyson. I build software for Principal Investigators to track
             deadlines and burn rates. Founder at{" "}
@@ -128,7 +129,7 @@ const Index = () => {
             <a
               href="#projects"
               onClick={(event) => handleSectionLinkClick(event, "#projects")}
-              className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-black border-2 border-black font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1"
+              className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-black dark:bg-zinc-100 dark:text-black border-2 border-black dark:border-white font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ff4499] hover:-translate-y-1"
             >
               View My Work
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -136,7 +137,7 @@ const Index = () => {
             <Link
               to={{ pathname: "/", hash: "#contact" }}
               onClick={(event) => handleSectionLinkClick(event, "#contact")}
-              className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-black transition-all duration-200 bg-white border-2 border-black font-mono hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-black dark:text-white transition-all duration-200 bg-card dark:bg-zinc-900 border-2 border-black dark:border-white font-mono hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
             >
               Contact Me
             </Link>
@@ -145,7 +146,7 @@ const Index = () => {
       </section>
 
       {/* --- ABOUT SECTION --- */}
-      <section id="about" className="py-24 bg-black text-white border-b-4 border-black relative overflow-hidden scroll-mt-28 md:scroll-mt-36">
+      <section id="about" className="py-24 bg-black dark:bg-zinc-950 text-white border-b-4 border-black dark:border-white relative overflow-hidden scroll-mt-28 md:scroll-mt-36">
         {/* Subtle grid in background of black section */}
         <div className="absolute inset-0 opacity-10 bg-[linear-gradient(#333_1px,transparent_1px),linear-gradient(90deg,#333_1px,transparent_1px)] bg-[size:20px_20px]" />
 
@@ -191,7 +192,7 @@ const Index = () => {
                   ].map((item) => (
                     <li key={item} className="flex items-center justify-between p-3 border border-gray-800 bg-zinc-900 hover:border-white transition-colors group">
                       <span className="font-mono text-sm font-bold">{item}</span>
-                      <div className="w-1.5 h-1.5 bg-gray-600 group-hover:bg-white transition-colors" />
+                      <div className="w-1.5 h-1.5 bg-gray-600 group-hover:bg-background transition-colors" />
                     </li>
                   ))}
                 </ul>
@@ -225,23 +226,23 @@ const Index = () => {
       {/* --- PROJECTS SECTION --- */}
       <section
         id="projects"
-        className="py-24 px-6 border-b-4 border-black bg-gray-50 scroll-mt-28 md:scroll-mt-36"
+        className="py-24 px-6 border-b-4 border-black dark:border-white bg-gray-50 dark:bg-zinc-900 scroll-mt-28 md:scroll-mt-36"
       >
         <div className="container mx-auto">
 
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
             <div className="space-y-2">
-              <div className="flex items-center gap-2 font-mono font-bold text-sm text-gray-500 mb-2">
-                <span className="w-2 h-2 bg-black"></span>
+              <div className="flex items-center gap-2 font-mono font-bold text-sm text-gray-500 dark:text-gray-400 mb-2">
+                <span className="w-2 h-2 bg-black dark:bg-white"></span>
                 PROJECTS_DIRECTORY
               </div>
-              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-black leading-none">
-                Featured <br /> <span className="bg-black text-white px-2">Work</span>
+              <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-black dark:text-white leading-none">
+                Featured <br /> <span className="bg-black dark:bg-white text-white dark:text-black px-2">Work</span>
               </h2>
             </div>
-            <div className="flex items-center gap-4 border-b-4 border-black pb-2">
-              <p className="font-mono text-xl font-bold text-black">
+            <div className="flex items-center gap-4 border-b-4 border-black dark:border-white pb-2">
+              <p className="font-mono text-xl font-bold text-black dark:text-white">
                 // SHIPPED_CODE
               </p>
             </div>
@@ -256,10 +257,10 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative flex flex-col h-full bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover-accent-shadow transition-all duration-200 hover:-translate-y-1"
+                className="group relative flex flex-col h-full bg-card dark:bg-zinc-800 border-4 border-black dark:border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover-accent-shadow transition-all duration-200 hover:-translate-y-1"
               >
                 {/* Image Window */}
-                <div className="border-b-4 border-black aspect-video overflow-hidden bg-gray-100 relative group-hover:brightness-110 transition-all">
+                <div className="border-b-4 border-black dark:border-white aspect-video overflow-hidden bg-gray-100 dark:bg-zinc-700 relative group-hover:brightness-110 transition-all">
                   {project.image ? (
                     <img
                       src={project.image}
@@ -267,26 +268,26 @@ const Index = () => {
                       className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                      <span className="font-mono text-gray-500">No Image</span>
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-zinc-600">
+                      <span className="font-mono text-gray-500 dark:text-gray-300">No Image</span>
                     </div>
                   )}
 
                   {/* Status Badge */}
-                  <div className="absolute top-0 left-0 bg-black text-white px-3 py-1 font-mono text-xs font-bold border-r-4 border-b-4 border-white">
+                  <div className="absolute top-0 left-0 bg-black dark:bg-white text-white dark:text-black px-3 py-1 font-mono text-xs font-bold border-r-4 border-b-4 border-white dark:border-black">
                     {project.status || "DEV"}
                   </div>
 
                   {/* Links (Only appear on hover or absolute top right) */}
                   <div className="absolute bottom-0 right-0 flex">
                     {project.liveUrl && (
-                      <a href={project.liveUrl} target="_blank" rel="noreferrer" className="bg-white border-t-4 border-l-4 border-black p-3 hover:bg-black hover:text-white transition-colors">
-                        <ExternalLink className="w-5 h-5" />
+                      <a href={project.liveUrl} target="_blank" rel="noreferrer" className="bg-card dark:bg-zinc-800 border-t-4 border-l-4 border-black dark:border-white p-3 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors">
+                        <ExternalLink className="w-5 h-5 dark:text-white dark:group-hover:text-black" />
                       </a>
                     )}
                     {project.githubUrl && (
-                      <a href={project.githubUrl} target="_blank" rel="noreferrer" className="bg-white border-t-4 border-l-4 border-black p-3 hover:bg-black hover:text-white transition-colors">
-                        <Github className="w-5 h-5" />
+                      <a href={project.githubUrl} target="_blank" rel="noreferrer" className="bg-card dark:bg-zinc-800 border-t-4 border-l-4 border-black dark:border-white p-3 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors">
+                        <Github className="w-5 h-5 dark:text-white dark:group-hover:text-black" />
                       </a>
                     )}
                   </div>
@@ -294,19 +295,19 @@ const Index = () => {
 
                 {/* Content */}
                 <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-2xl font-black uppercase mb-3 flex items-center gap-2">
+                  <h3 className="text-2xl font-black uppercase mb-3 flex items-center gap-2 dark:text-white">
                     {project.title}
                   </h3>
 
-                  <p className="text-gray-600 font-mono text-sm leading-relaxed mb-6 flex-grow">
+                  <p className="text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed mb-6 flex-grow">
                     {project.description}
                   </p>
 
                   <div className="space-y-4 mt-auto">
-                    <div className="w-full h-1 bg-gray-100" />
+                    <div className="w-full h-1 bg-gray-100 dark:bg-zinc-700" />
                     <div className="flex flex-wrap gap-2">
                       {project.tech.map((t: string) => (
-                        <span key={t} className="px-2 py-1 bg-gray-100 border border-black text-[10px] md:text-xs font-mono font-bold uppercase hover:bg-black hover:text-white transition-colors cursor-default">
+                        <span key={t} className="px-2 py-1 bg-gray-100 dark:bg-zinc-900 border border-black dark:border-white text-[10px] md:text-xs font-mono font-bold uppercase hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black dark:text-zinc-300 transition-colors cursor-default">
                           {t}
                         </span>
                       ))}
@@ -320,18 +321,18 @@ const Index = () => {
       </section>
 
       {/* --- CONTACT SECTION --- */}
-      <section id="contact" className="py-24 bg-white relative scroll-mt-28 md:scroll-mt-36">
+      <section id="contact" className="py-24 bg-background dark:bg-zinc-950 relative scroll-mt-28 md:scroll-mt-36">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
 
         <div className="container mx-auto px-6 text-center max-w-4xl relative z-10">
-          <h2 className="text-5xl md:text-6xl font-black uppercase mb-8">Ready to talk?</h2>
-          <p className="text-xl md:text-2xl font-mono text-gray-600 mb-12">
+          <h2 className="text-5xl md:text-6xl font-black uppercase mb-8 dark:text-white">Ready to talk?</h2>
+          <p className="text-xl md:text-2xl font-mono text-gray-600 dark:text-gray-400 mb-12">
             I'm currently focused on {
               <a
                 href="https://thesiserp.com"
                 target="_blank"
                 rel="noreferrer"
-                className="px-1 border-b-4 border-black font-bold"
+                className="px-1 border-b-4 border-black dark:border-white font-bold dark:text-white"
                 style={{ borderColor: ACCENT_COLOR }}
               >
                 Thesis
@@ -344,7 +345,7 @@ const Index = () => {
               href="https://linkedin.com/in/treyson-brown"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-[#0077b5] text-white font-bold text-lg border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-[#0077b5] text-white font-bold text-lg border-4 border-black dark:border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
             >
               <Linkedin size={24} />
               LinkedIn
@@ -353,7 +354,7 @@ const Index = () => {
               href="https://github.com/treysonbrown"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-[#333] text-white font-bold text-lg border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-[#333] text-white font-bold text-lg border-4 border-black dark:border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
             >
               <Github size={24} />
               GitHub
@@ -362,7 +363,7 @@ const Index = () => {
         </div>
       </section>
 
-      <footer className="py-8 bg-black text-white text-center font-mono text-sm border-t-4 border-black">
+      <footer className="py-8 bg-black dark:bg-zinc-950 text-white text-center font-mono text-sm border-t-4 border-black dark:border-white">
         <p>&copy; {new Date().getFullYear()} Treyson Brown. Built with Nvim and Gemini 3 Pro.</p>
       </footer>
     </div>
