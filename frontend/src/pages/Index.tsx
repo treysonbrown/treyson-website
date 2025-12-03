@@ -4,10 +4,7 @@ import { motion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
-
-// Assuming you have these images.
-import thesisImage from "@/assets/Thesis.png";
-import pharmaEduImage from "@/assets/pharma-edu.png";
+import { projects } from "@/data/projects";
 
 // --- CONFIGURATION ---
 const ACCENT_COLOR = "#ff4499";
@@ -26,25 +23,6 @@ const Index = () => {
       scrollToSection(extractSectionId(hash));
     }
   };
-
-  const projects = [
-    {
-      title: "Thesis ERP",
-      description: "Grant financial management for PIs. Replacing complex spreadsheets with intuitive software to track burn rates and compliance.",
-      tech: ["React", "FastAPI", "PostgreSQL", "SQLModel"],
-      liveUrl: "https://thesiserp.com",
-      status: "PRODUCTION",
-      image: thesisImage,
-    },
-    {
-      title: "Pharma EDU",
-      description: "Educational platform for pharmacy students. Features interactive quizzes, progress tracking, and material distribution.",
-      tech: ["React", "FastAPI", "PostgreSQL", "Alembic"],
-      liveUrl: "https://pharmacy.projectgnome.org/login",
-      status: "LIVE",
-      image: pharmaEduImage,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white">
@@ -252,7 +230,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project, index) => (
               <motion.div
-                key={index}
+                key={project.slug}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -300,7 +278,7 @@ const Index = () => {
                   </h3>
 
                   <p className="text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed mb-6 flex-grow">
-                    {project.description}
+                    {project.shortDescription}
                   </p>
 
                   <div className="space-y-4 mt-auto">
@@ -311,6 +289,15 @@ const Index = () => {
                           {t}
                         </span>
                       ))}
+                    </div>
+                    <div className="pt-2">
+                      <Link
+                        to={`/projects/${project.slug}`}
+                        className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1 font-mono text-xs font-bold uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all dark:bg-zinc-900 dark:text-white dark:border-white"
+                      >
+                        View details
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -364,7 +351,18 @@ const Index = () => {
       </section>
 
       <footer className="py-8 bg-black dark:bg-zinc-950 text-white text-center font-mono text-sm border-t-4 border-black dark:border-white">
-        <p>&copy; {new Date().getFullYear()} Treyson Brown. Built with Nvim and Gemini 3 Pro.</p>
+        <p>
+          &copy; {new Date().getFullYear()} Treyson Brown. {" "}
+          <a
+            href="https://github.com/treysonbrown/treyson-website"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-zinc-300"
+          >
+            View my source code
+          </a>
+          .
+        </p>
       </footer>
     </div>
   );
