@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Terminal, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, eachDayOfInterval, subYears, startOfWeek } from "date-fns";
@@ -47,12 +47,19 @@ type VelocityChartEntry = {
   entries: EntryDetail[];
 };
 
-type VelocityTooltipProps = {
-  active?: boolean;
-  payload?: any[];
+type VelocityChartPayload = {
+  payload?: VelocityChartEntry;
 };
 
-type VelocityBarClickArg = VelocityChartEntry | { payload?: VelocityChartEntry };
+type VelocityTooltipProps = {
+  active?: boolean;
+  payload?: VelocityChartPayload[];
+};
+
+type VelocityBarClickArg = VelocityChartEntry | {
+  payload?: VelocityChartEntry;
+  activePayload?: VelocityChartPayload[];
+};
 
 type DayDetail = {
   totalHours: number;
@@ -135,126 +142,143 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
     placement: "above" | "below";
   } | null>(null);
 
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const scrollToMostRecent = () => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const { scrollWidth, clientWidth } = container;
+      container.scrollLeft = Math.max(scrollWidth - clientWidth, 0);
+    };
+
+    scrollToMostRecent();
+    window.addEventListener("resize", scrollToMostRecent);
+    return () => window.removeEventListener("resize", scrollToMostRecent);
+  }, [entries]);
+
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      <div className="min-w-[800px] relative">
-        {/* Days of week labels */}
-        <div className="absolute -left-8 top-0 flex flex-col justify-between h-[100px] text-[10px] font-mono text-gray-400 dark:text-gray-500">
-          <span>Mon</span>
-          <span>Wed</span>
-          <span>Fri</span>
-        </div>
-
-        <div>
-          <div className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]">
-            {days.map((day) => {
-              const dateKey = format(day, 'yyyy-MM-dd');
-              const data = entriesByDate.get(dateKey);
-              const hours = data?.totalHours || 0;
-
-              return (
-                <div
-                  key={dateKey}
-                  className="w-[12px] h-[12px] border border-transparent hover:border-black dark:hover:border-white hover:z-50 transition-all cursor-pointer relative group"
-                  style={{
-                    backgroundColor: getIntensityColor(hours),
-                    borderRadius: '1px'
-                  }}
-                  onMouseEnter={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const cellCenterX = rect.left + rect.width / 2;
-                    const maxLeft = Math.max(TOOLTIP_MARGIN, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN);
-                    const aboveTop = rect.top - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
-
-                    let left = cellCenterX - TOOLTIP_WIDTH / 2;
-                    left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
-
-                    let top = aboveTop;
-                    let placement: "above" | "below" = "above";
-                    if (aboveTop < TOOLTIP_MARGIN) {
-                      top = rect.bottom + TOOLTIP_MARGIN;
-                      placement = "below";
-                      const maxBelowTop = Math.max(TOOLTIP_MARGIN, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_MARGIN);
-                      top = Math.min(top, maxBelowTop);
-                    }
-
-                    setHoveredDay({
-                      date: day,
-                      data,
-                      position: { left, top },
-                      placement
-                    });
-                  }}
-                  onClick={() => onDaySelect?.(day, data)}
-                  onMouseLeave={() => setHoveredDay(null)}
-                />
-              );
-            })}
+    <div className="w-full pb-4">
+      <div ref={scrollContainerRef} className="w-full overflow-x-auto pb-4">
+        <div className="min-w-[800px] relative">
+          {/* Days of week labels */}
+          <div className="absolute -left-8 top-0 flex flex-col justify-between h-[100px] text-[10px] font-mono text-gray-400 dark:text-gray-500">
+            <span>Mon</span>
+            <span>Wed</span>
+            <span>Fri</span>
           </div>
 
-          <AnimatePresence>
-            {hoveredDay && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                style={{
-                  position: 'fixed',
-                  left: hoveredDay.position.left,
-                  top: hoveredDay.position.top,
-                  zIndex: 100
-                }}
-                className="pointer-events-none w-[250px]"
-              >
-                <div className="bg-card dark:bg-zinc-900 border-2 border-black dark:border-white p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] relative text-black dark:text-white">
-                  {/* Arrow */}
+          <div>
+            <div className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]">
+              {days.map((day) => {
+                const dateKey = format(day, 'yyyy-MM-dd');
+                const data = entriesByDate.get(dateKey);
+                const hours = data?.totalHours || 0;
+
+                return (
                   <div
-                    className={
-                      hoveredDay.placement === "above"
-                        ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-b-2 border-r-2 border-black dark:border-white rotate-45"
-                        : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-t-2 border-l-2 border-black dark:border-white -rotate-45"
-                    }
+                    key={dateKey}
+                    className="w-[12px] h-[12px] border border-transparent hover:border-black dark:hover:border-white hover:z-50 transition-all cursor-pointer relative group"
+                    style={{
+                      backgroundColor: getIntensityColor(hours),
+                      borderRadius: '1px'
+                    }}
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const cellCenterX = rect.left + rect.width / 2;
+                      const maxLeft = Math.max(TOOLTIP_MARGIN, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_MARGIN);
+                      const aboveTop = rect.top - TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+
+                      let left = cellCenterX - TOOLTIP_WIDTH / 2;
+                      left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
+
+                      let top = aboveTop;
+                      let placement: "above" | "below" = "above";
+                      if (aboveTop < TOOLTIP_MARGIN) {
+                        top = rect.bottom + TOOLTIP_MARGIN;
+                        placement = "below";
+                        const maxBelowTop = Math.max(TOOLTIP_MARGIN, window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_MARGIN);
+                        top = Math.min(top, maxBelowTop);
+                      }
+
+                      setHoveredDay({
+                        date: day,
+                        data,
+                        position: { left, top },
+                        placement
+                      });
+                    }}
+                    onClick={() => onDaySelect?.(day, data)}
+                    onMouseLeave={() => setHoveredDay(null)}
                   />
+                );
+              })}
+            </div>
 
-                  <div className="relative z-10 space-y-2">
-                    <div className="flex justify-between items-center border-b border-gray-200 dark:border-zinc-700 pb-2">
-                      <span className="font-mono text-xs font-bold uppercase text-gray-500 dark:text-gray-400">
-                        {format(hoveredDay.date, "MMM do, yyyy")}
-                      </span>
-                      <span
-                        className="font-black text-sm"
-                        style={{ color: ACCENT_COLOR }}
-                      >
-                        {hoveredDay.data?.totalHours.toFixed(1) || 0} hrs
-                      </span>
-                    </div>
+            <AnimatePresence>
+              {hoveredDay && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  style={{
+                    position: 'fixed',
+                    left: hoveredDay.position.left,
+                    top: hoveredDay.position.top,
+                    zIndex: 100
+                  }}
+                  className="pointer-events-none w-[250px]"
+                >
+                  <div className="bg-card dark:bg-zinc-900 border-2 border-black dark:border-white p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] relative text-black dark:text-white">
+                    {/* Arrow */}
+                    <div
+                      className={
+                        hoveredDay.placement === "above"
+                          ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-b-2 border-r-2 border-black dark:border-white rotate-45"
+                          : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-t-2 border-l-2 border-black dark:border-white -rotate-45"
+                      }
+                    />
 
-                    <div className="space-y-1 max-h-[100px] overflow-hidden">
-                      {hoveredDay.data?.entries.length ? (
-                        hoveredDay.data.entries.map((entry, i) => (
-                          <div key={i} className="font-mono text-xs leading-tight truncate space-y-0.5">
-                            {entry.tag ? (
-                              <span className="inline-block bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 text-[9px] uppercase tracking-[0.3em] text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-zinc-700">
-                                {entry.tag}
-                              </span>
-                            ) : null}
-                            <p className="truncate">
-                              {entry.description ?? "No description"}
-                            </p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs font-mono text-gray-400 italic">No activity logged.</p>
-                      )}
+                    <div className="relative z-10 space-y-2">
+                      <div className="flex justify-between items-center border-b border-gray-200 dark:border-zinc-700 pb-2">
+                        <span className="font-mono text-xs font-bold uppercase text-gray-500 dark:text-gray-400">
+                          {format(hoveredDay.date, "MMM do, yyyy")}
+                        </span>
+                        <span
+                          className="font-black text-sm"
+                          style={{ color: ACCENT_COLOR }}
+                        >
+                          {hoveredDay.data?.totalHours.toFixed(1) || 0} hrs
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 max-h-[100px] overflow-hidden">
+                        {hoveredDay.data?.entries.length ? (
+                          hoveredDay.data.entries.map((entry, i) => (
+                            <div key={i} className="font-mono text-xs leading-tight truncate space-y-0.5">
+                              {entry.tag ? (
+                                <span className="inline-block bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 text-[9px] uppercase tracking-[0.3em] text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-zinc-700">
+                                  {entry.tag}
+                                </span>
+                              ) : null}
+                              <p className="truncate">
+                                {entry.description ?? "No description"}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs font-mono text-gray-400 italic">No activity logged.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-
       </div>
+
       <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500 dark:text-gray-400">
         <span>Less</span>
         <div className="flex gap-1">
@@ -331,9 +355,14 @@ const Stats = () => {
     });
   }, [entries]);
 
-  const handleVelocityBarClick = (barData: any) => {
+  const handleVelocityBarClick = (barData?: VelocityBarClickArg) => {
     if (!barData) return;
-    const payload = barData.activePayload ? barData.activePayload[0].payload : barData;
+    const payload =
+      "activePayload" in barData && barData.activePayload?.length
+        ? barData.activePayload[0]?.payload
+        : "payload" in barData
+          ? barData.payload
+          : barData;
     if (!payload) return;
     setSelectedDay({
       date: payload.workDate,
@@ -464,9 +493,13 @@ const Stats = () => {
               <h2 className="text-4xl font-black uppercase dark:text-white">Momentum</h2>
               <span className="font-mono text-sm mb-2 text-gray-500 dark:text-gray-400">// 1_YEAR_VIEW</span>
             </div>
-            <div className="flex items-center gap-2 font-mono text-xs font-bold bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-100 border border-black dark:border-white px-2 py-1">
+            <div className="hidden md:flex items-center gap-2 font-mono text-xs font-bold bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-100 border border-black dark:border-white px-2 py-1">
               <Activity className="w-4 h-4" />
               HOVER AND CLICK FOR DETAILS
+            </div>
+            <div className="flex md:hidden items-center gap-2 font-mono text-xs font-bold bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-100 border border-black dark:border-white px-2 py-1">
+              <Activity className="w-4 h-4" />
+              TAP FOR DETAILS
             </div>
           </div>
 
