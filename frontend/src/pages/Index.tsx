@@ -1,4 +1,4 @@
-import { MouseEvent, useEffect } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
@@ -11,11 +11,41 @@ const ACCENT_COLOR = "#ff4499";
 
 const Index = () => {
   const location = useLocation();
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     if (!location.hash) return;
     scrollToSection(extractSectionId(location.hash));
   }, [location.hash]);
+
+  useEffect(() => {
+    const sectionIds = ["about", "projects", "contact"];
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible.length > 0) {
+          const topSection = visible[0].target as HTMLElement;
+          setActiveSection(topSection.id);
+        }
+      },
+      {
+        threshold: 0.4,
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleSectionLinkClick = (event: MouseEvent<HTMLAnchorElement>, hash: string) => {
     if (location.hash === hash) {
@@ -26,7 +56,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white">
-      <Navbar />
+      <Navbar activeSection={activeSection} />
 
       {/* Dynamic Style Injection for Text Selection & Hover States */}
       <style>{`

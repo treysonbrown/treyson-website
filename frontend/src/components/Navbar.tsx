@@ -10,6 +10,7 @@ const ACCENT_COLOR = "#ff4499";
 interface NavbarProps {
   showHomeLink?: boolean;
   useAbsolutePaths?: boolean;
+  activeSection?: string | null;
 }
 
 interface NavItem {
@@ -17,7 +18,11 @@ interface NavItem {
   to: string;
 }
 
-const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps) => {
+const Navbar = ({
+  showHomeLink = false,
+  useAbsolutePaths = false,
+  activeSection,
+}: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -42,6 +47,10 @@ const Navbar = ({ showHomeLink = false, useAbsolutePaths = false }: NavbarProps)
     const hashIndex = item.to.indexOf("#");
     if (hashIndex >= 0) {
       const hash = item.to.slice(hashIndex);
+      if (location.pathname === "/" && activeSection) {
+        const sectionId = extractSectionId(hash);
+        return activeSection === sectionId;
+      }
       return location.hash === hash;
     }
 
