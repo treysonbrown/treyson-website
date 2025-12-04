@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Terminal, Activity } from "lucide-react";
+import { Terminal, Activity, Github } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, eachDayOfInterval, subYears, startOfWeek } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,12 +28,18 @@ import { supabase } from "@/lib/supabaseClient";
 
 const ACCENT_COLOR = "#ff4499";
 const TOOLTIP_WIDTH = 250;
-const TOOLTIP_HEIGHT = 170;
+const TOOLTIP_HEIGHT = 170; // Adjusted for content
 const TOOLTIP_MARGIN = 12;
 const GITHUB_HEATMAP_COLORS = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"] as const;
 
+const getGitHubCellColor = (day: GitHubContributionDay) => {
+  if (day.contributionLevel === "NONE" || day.contributionCount === 0) {
+    return "var(--heatmap-empty)";
+  }
+  return day.color;
+};
+
 // Helper to determine intensity color based on hours
-// NOTE: 0 hours logic is handled inline in the component via CSS variables now
 const getIntensityColor = (hours: number) => {
   if (hours === 0) return "var(--heatmap-empty)";
   if (hours <= 2) return `${ACCENT_COLOR}33`; // 20% opacity
@@ -176,7 +182,7 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
           </div>
 
           <div>
-            <div className="grid gap-[3px] grid-rows-7 grid-flow-col h-[115px]">
+            <div className="grid gap-[3px] grid-rows-7 grid-flow-col h-[102px]">
               {days.map((day) => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const data = entriesByDate.get(dateKey);
@@ -301,6 +307,7 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
   );
 };
 
+// --- COMPONENT: GITHUB HEATMAP (Rebuilt to match) ---
 type GitHubHeatmapProps = {
   username?: string;
   weeks?: GitHubContributionDay[][];
@@ -319,7 +326,18 @@ const GitHubHeatmap = ({
   error,
 }: GitHubHeatmapProps) => {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  let content: ReactNode;
+  const [selectedGitHubDay, setSelectedGitHubDay] = useState<{ date: Date; count: number } | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<{
+    date: Date;
+    count: number;
+    position: { left: number; top: number };
+    placement: "above" | "below";
+  } | null>(null);
+
+  const flattenedDays = useMemo(
+    () => (weeks ? weeks.flat() : []),
+    [weeks]
+  );
 
   useEffect(() => {
     if (!weeks?.length) return;
@@ -329,82 +347,188 @@ const GitHubHeatmap = ({
       const { scrollWidth, clientWidth } = container;
       container.scrollLeft = Math.max(scrollWidth - clientWidth, 0);
     };
-    // Wait a frame so layout finishes before scrolling
     const frame = requestAnimationFrame(scrollToLatest);
     return () => cancelAnimationFrame(frame);
   }, [weeks]);
 
-  if (isLoading) {
-    content = <Skeleton className="h-[140px] w-full" />;
-  } else if (isError) {
-    content = (
-      <p className="font-mono text-sm text-red-500 dark:text-red-400">
-        Failed to load GitHub heatmap{error?.message ? `: ${error.message}` : "."}
-      </p>
-    );
-  } else if (!weeks?.length) {
-    content = (
-      <p className="font-mono text-sm text-gray-500 dark:text-gray-400">
-        No GitHub contributions available.
-      </p>
-    );
-  } else {
-    content = (
-      <>
-        <div ref={scrollContainerRef} className="overflow-x-auto pb-4">
-          <div className="min-w-[720px]">
-            <div className="flex gap-[3px]">
-              {weeks.map((week, index) => {
-                const key = week[0]?.date ?? `week-${index}`;
-                return (
-                  <div key={key} className="flex flex-col gap-[3px]">
-                    {week.map((day) => {
-                      const formattedDate = format(parseISO(day.date), "MMM d, yyyy");
-                      const tooltip = `${day.contributionCount} contribution${day.contributionCount === 1 ? "" : "s"} on ${formattedDate}`;
-                      return (
-                        <div
-                          key={day.date}
-                          className="w-[11px] h-[11px] rounded-[2px] border border-transparent hover:border-black dark:hover:border-white transition-colors"
-                          style={{ backgroundColor: day.color }}
-                          title={tooltip}
-                          aria-label={tooltip}
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              })}
+  if (isLoading) return <Skeleton className="h-[200px] w-full" />;
+  if (isError) return <p className="font-mono text-red-500">Failed to load GitHub data.</p>;
+  if (!weeks?.length || !flattenedDays.length) return <p className="font-mono text-gray-500">No GitHub data.</p>;
+
+  // Visual grid matches Momentum heatmap (7 rows, flowing horizontally)
+  return (
+    <div className="mt-10 pt-8 border-t-2 border-dashed border-black/10 dark:border-white/30">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <p className="font-mono text-xs text-gray-500 dark:text-gray-400">// GITHUB_ACTIVITY</p>
+          <h3 className="text-2xl font-black uppercase dark:text-white flex items-center gap-2">
+            <Github className="w-6 h-6" /> GitHub Heatmap
+          </h3>
+        </div>
+        {typeof totalContributions === "number" && (
+          <div className="font-mono text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 px-2 py-1 border border-gray-300 dark:border-zinc-700">
+            {totalContributions.toLocaleString()} total commits
+          </div>
+        )}
+      </div>
+
+      <div className="w-full pb-4">
+        <div ref={scrollContainerRef} className="w-full overflow-x-auto pb-4">
+          <div className="min-w-[800px] relative">
+            {/* Day Labels - Matching existing graph */}
+            <div className="absolute -left-8 top-0 flex flex-col justify-between h-[100px] text-[10px] font-mono text-gray-400 dark:text-gray-500">
+              <span>Mon</span>
+              <span>Wed</span>
+              <span>Fri</span>
             </div>
+
+            {/* Grid Container (matches Momentum heatmap) */}
+            <div className="grid gap-[3px] grid-rows-7 grid-flow-col h-[102px]">
+              {flattenedDays.map((day) => (
+                <div
+                  key={day.date}
+                  className="w-[12px] h-[12px] border border-transparent hover:border-black dark:hover:border-white hover:z-50 transition-all cursor-pointer relative"
+                  style={{
+                    backgroundColor: getGitHubCellColor(day),
+                    borderRadius: "1px",
+                  }}
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const cellCenterX = rect.left + rect.width / 2;
+                    // Smaller tooltip dimensions for GitHub since less data
+                    const GH_TOOLTIP_HEIGHT = 80;
+                    const GH_TOOLTIP_WIDTH = 200;
+
+                    const maxLeft = Math.max(
+                      TOOLTIP_MARGIN,
+                      window.innerWidth - GH_TOOLTIP_WIDTH - TOOLTIP_MARGIN
+                    );
+                    const aboveTop = rect.top - GH_TOOLTIP_HEIGHT - TOOLTIP_MARGIN;
+
+                    let left = cellCenterX - GH_TOOLTIP_WIDTH / 2;
+                    left = Math.max(TOOLTIP_MARGIN, Math.min(left, maxLeft));
+
+                    let top = aboveTop;
+                    let placement: "above" | "below" = "above";
+                    if (aboveTop < TOOLTIP_MARGIN) {
+                      top = rect.bottom + TOOLTIP_MARGIN;
+                      placement = "below";
+                      const maxBelowTop = Math.max(
+                        TOOLTIP_MARGIN,
+                        window.innerHeight - GH_TOOLTIP_HEIGHT - TOOLTIP_MARGIN
+                      );
+                      top = Math.min(top, maxBelowTop);
+                    }
+
+                    setHoveredDay({
+                      date: parseISO(day.date),
+                      count: day.contributionCount,
+                      position: { left, top },
+                      placement,
+                    });
+                  }}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  onClick={() =>
+                    setSelectedGitHubDay({
+                      date: parseISO(day.date),
+                      count: day.contributionCount,
+                    })
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Hover Tooltip (Identical style to WorkLog) */}
+            <AnimatePresence>
+              {hoveredDay && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  style={{
+                    position: "fixed",
+                    left: hoveredDay.position.left,
+                    top: hoveredDay.position.top,
+                    zIndex: 100,
+                  }}
+                  className="pointer-events-none w-[200px]"
+                >
+                  <div className="bg-card dark:bg-zinc-900 border-2 border-black dark:border-white p-3 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] relative text-black dark:text-white">
+                    {/* Arrow */}
+                    <div
+                      className={
+                        hoveredDay.placement === "above"
+                          ? "absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-b-2 border-r-2 border-black dark:border-white rotate-45"
+                          : "absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card dark:bg-zinc-900 border-t-2 border-l-2 border-black dark:border-white -rotate-45"
+                      }
+                    />
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      <span className="font-mono text-xs font-bold uppercase text-gray-500 dark:text-gray-400">
+                        {format(hoveredDay.date, "MMM do, yyyy")}
+                      </span>
+                      <span className="font-black text-lg mt-1 dark:text-white">
+                        {hoveredDay.count}
+                      </span>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-gray-500">
+                        Contributions
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500 dark:text-gray-400">
+
+        {/* Legend */}
+        <div className="mt-4 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500 dark:text-gray-400">
           <span>Less</span>
           <div className="flex gap-1">
-            {GITHUB_HEATMAP_COLORS.map((color) => (
-              <div key={color} className="w-[10px] h-[10px] rounded-[2px]" style={{ backgroundColor: color }} />
+            {GITHUB_HEATMAP_COLORS.map((color, index) => (
+              <div
+                key={color}
+                className="w-[10px] h-[10px] rounded-[1px]"
+                style={{ backgroundColor: index === 0 ? "var(--heatmap-empty)" : color }}
+              />
             ))}
           </div>
           <span>More</span>
         </div>
-      </>
-    );
-  }
-
-  return (
-    <div className="mt-10 pt-8 border-t-2 border-dashed border-black/10 dark:border-white/30">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <p className="font-mono text-xs text-gray-500 dark:text-gray-400">// GITHUB_ACTIVITY</p>
-          <h3 className="text-2xl font-black uppercase dark:text-white">GitHub Heatmap</h3>
-        </div>
-        {typeof totalContributions === "number" && (
-          <div className="font-mono text-sm text-gray-600 dark:text-gray-300">
-            {totalContributions.toLocaleString()} contributions
-            {username ? ` · @${username}` : ""}
-          </div>
-        )}
       </div>
-      <div className="mt-4">{content}</div>
+
+      {/* Click Dialog */}
+      <Dialog
+        open={Boolean(selectedGitHubDay)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedGitHubDay(null);
+        }}
+      >
+        <DialogContent className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 px-6 py-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] font-mono max-w-sm text-center">
+          <div className="flex flex-col items-center gap-4">
+            <Github className="w-12 h-12 dark:text-white" strokeWidth={1.5} />
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">
+                {selectedGitHubDay ? format(selectedGitHubDay.date, "EEEE, MMMM do yyyy") : ""}
+              </p>
+              <div className="text-5xl font-black dark:text-white">
+                {selectedGitHubDay?.count}
+              </div>
+              <p className="text-sm font-bold mt-1 text-gray-600 dark:text-gray-300">
+                Contributions
+              </p>
+            </div>
+            <div className="h-px w-full bg-gray-200 dark:bg-zinc-800 my-2" />
+            <a
+              href={`https://github.com/${username}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            >
+              View on GitHub &rarr;
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
