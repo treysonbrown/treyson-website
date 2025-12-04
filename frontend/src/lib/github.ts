@@ -23,6 +23,18 @@ export interface GitHubRepo {
   updated_at: string;
 }
 
+export interface GitHubContributionDay {
+  color: string;
+  contributionCount: number;
+  contributionLevel: "NONE" | "FIRST_QUARTILE" | "SECOND_QUARTILE" | "THIRD_QUARTILE" | "FOURTH_QUARTILE";
+  date: string;
+}
+
+export interface GitHubContributionsResponse {
+  contributions: GitHubContributionDay[][];
+  totalContributions: number;
+}
+
 async function githubRequest<T>(path: string): Promise<T> {
   const response = await fetch(`${GITHUB_API_BASE}${path}`);
 
@@ -38,3 +50,13 @@ export const getGitHubUser = (username: string) => githubRequest<GitHubUser>(`/u
 
 export const getGitHubRepos = (username: string) =>
   githubRequest<GitHubRepo[]>(`/users/${username}/repos?per_page=100&sort=updated`);
+
+export const getGitHubContributions = async (username: string) => {
+  const response = await fetch(`https://github-contributions-api.deno.dev/${username}.json`);
+
+  if (!response.ok) {
+    throw new Error(`GitHub contributions request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<GitHubContributionsResponse>;
+};

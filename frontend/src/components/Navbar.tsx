@@ -259,6 +259,28 @@ const Navbar = ({
                 </Link>
               );
             })}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-full p-4 border-4 bg-background dark:bg-zinc-900 dark:text-white font-black text-xl uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black border-black dark:border-white flex items-center justify-between gap-4"
+              aria-label="Toggle theme"
+            >
+              <div className="text-left">
+                <span className="block">Toggle Theme</span>
+                <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                  {isDark ? "Dark" : "Light"} Mode
+                </span>
+              </div>
+              <span className="flex items-center justify-center">
+                {isMounted ? (
+                  isDark ? (
+                    <Sun size={22} style={{ color: ACCENT_COLOR }} />
+                  ) : (
+                    <Moon size={22} style={{ color: ACCENT_COLOR }} />
+                  )
+                ) : null}
+              </span>
+            </button>
           </div>
 
           {/* Drawer Footer */}

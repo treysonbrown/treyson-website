@@ -5,8 +5,8 @@ export const ThemeProvider = ({ children, ...props }: ThemeProviderProps) => {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      enableSystem={false}
       disableTransitionOnChange
       storageKey="treyson-theme"
       {...props}
@@ -15,4 +15,3 @@ export const ThemeProvider = ({ children, ...props }: ThemeProviderProps) => {
     </NextThemesProvider>
   );
 };
-
