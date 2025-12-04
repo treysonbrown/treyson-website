@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Terminal, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, eachDayOfInterval, subYears, startOfWeek } from "date-fns";
@@ -16,7 +16,13 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { GITHUB_USERNAME } from "@/lib/config";
-import { getGitHubRepos, getGitHubUser } from "@/lib/github";
+import {
+  getGitHubRepos,
+  getGitHubUser,
+  getGitHubContributions,
+  type GitHubContributionDay,
+  type GitHubContributionsResponse,
+} from "@/lib/github";
 import { useWorkLog, type WorkLogEntry } from "@/hooks/useWorkLog";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -24,6 +30,7 @@ const ACCENT_COLOR = "#ff4499";
 const TOOLTIP_WIDTH = 250;
 const TOOLTIP_HEIGHT = 170;
 const TOOLTIP_MARGIN = 12;
+const GITHUB_HEATMAP_COLORS = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"] as const;
 
 // Helper to determine intensity color based on hours
 // NOTE: 0 hours logic is handled inline in the component via CSS variables now
@@ -294,6 +301,114 @@ const ContributionGraph = ({ entries, onDaySelect }: ContributionGraphProps) => 
   );
 };
 
+type GitHubHeatmapProps = {
+  username?: string;
+  weeks?: GitHubContributionDay[][];
+  totalContributions?: number;
+  isLoading: boolean;
+  isError: boolean;
+  error?: Error | null;
+};
+
+const GitHubHeatmap = ({
+  username,
+  weeks,
+  totalContributions,
+  isLoading,
+  isError,
+  error,
+}: GitHubHeatmapProps) => {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  let content: ReactNode;
+
+  useEffect(() => {
+    if (!weeks?.length) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const scrollToLatest = () => {
+      const { scrollWidth, clientWidth } = container;
+      container.scrollLeft = Math.max(scrollWidth - clientWidth, 0);
+    };
+    // Wait a frame so layout finishes before scrolling
+    const frame = requestAnimationFrame(scrollToLatest);
+    return () => cancelAnimationFrame(frame);
+  }, [weeks]);
+
+  if (isLoading) {
+    content = <Skeleton className="h-[140px] w-full" />;
+  } else if (isError) {
+    content = (
+      <p className="font-mono text-sm text-red-500 dark:text-red-400">
+        Failed to load GitHub heatmap{error?.message ? `: ${error.message}` : "."}
+      </p>
+    );
+  } else if (!weeks?.length) {
+    content = (
+      <p className="font-mono text-sm text-gray-500 dark:text-gray-400">
+        No GitHub contributions available.
+      </p>
+    );
+  } else {
+    content = (
+      <>
+        <div ref={scrollContainerRef} className="overflow-x-auto pb-4">
+          <div className="min-w-[720px]">
+            <div className="flex gap-[3px]">
+              {weeks.map((week, index) => {
+                const key = week[0]?.date ?? `week-${index}`;
+                return (
+                  <div key={key} className="flex flex-col gap-[3px]">
+                    {week.map((day) => {
+                      const formattedDate = format(parseISO(day.date), "MMM d, yyyy");
+                      const tooltip = `${day.contributionCount} contribution${day.contributionCount === 1 ? "" : "s"} on ${formattedDate}`;
+                      return (
+                        <div
+                          key={day.date}
+                          className="w-[11px] h-[11px] rounded-[2px] border border-transparent hover:border-black dark:hover:border-white transition-colors"
+                          style={{ backgroundColor: day.color }}
+                          title={tooltip}
+                          aria-label={tooltip}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-2 text-[10px] font-mono text-gray-500 dark:text-gray-400">
+          <span>Less</span>
+          <div className="flex gap-1">
+            {GITHUB_HEATMAP_COLORS.map((color) => (
+              <div key={color} className="w-[10px] h-[10px] rounded-[2px]" style={{ backgroundColor: color }} />
+            ))}
+          </div>
+          <span>More</span>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="mt-10 pt-8 border-t-2 border-dashed border-black/10 dark:border-white/30">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs text-gray-500 dark:text-gray-400">// GITHUB_ACTIVITY</p>
+          <h3 className="text-2xl font-black uppercase dark:text-white">GitHub Heatmap</h3>
+        </div>
+        {typeof totalContributions === "number" && (
+          <div className="font-mono text-sm text-gray-600 dark:text-gray-300">
+            {totalContributions.toLocaleString()} contributions
+            {username ? ` · @${username}` : ""}
+          </div>
+        )}
+      </div>
+      <div className="mt-4">{content}</div>
+    </div>
+  );
+};
+
 const Stats = () => {
   const todayIso = format(new Date(), "yyyy-MM-dd");
   const [date, setDate] = useState(todayIso);
@@ -325,6 +440,13 @@ const Stats = () => {
     queryKey: ["github-repos", GITHUB_USERNAME],
     queryFn: () => getGitHubRepos(GITHUB_USERNAME),
     staleTime: 1000 * 60 * 10,
+  });
+
+  const contributionsQuery = useQuery<GitHubContributionsResponse, Error>({
+    queryKey: ["github-contributions", GITHUB_USERNAME],
+    queryFn: () => getGitHubContributions(GITHUB_USERNAME),
+    staleTime: 1000 * 60 * 30,
+    enabled: Boolean(GITHUB_USERNAME),
   });
 
   const chartData = useMemo<VelocityChartEntry[]>(() => {
@@ -517,6 +639,16 @@ const Stats = () => {
                   entries={entries}
                   onDaySelect={(date, data) => setSelectedDay({ date, data })}
                 />
+                {GITHUB_USERNAME ? (
+                  <GitHubHeatmap
+                    username={GITHUB_USERNAME}
+                    weeks={contributionsQuery.data?.contributions}
+                    totalContributions={contributionsQuery.data?.totalContributions}
+                    isLoading={contributionsQuery.isLoading}
+                    isError={contributionsQuery.isError}
+                    error={contributionsQuery.error}
+                  />
+                ) : null}
                 <Dialog
                   open={Boolean(selectedDay)}
                   onOpenChange={(open) => {
