@@ -35,7 +35,6 @@ const Navbar = ({
     { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
     { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
     { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
-    { label: "Stats", to: "/stats" },
     { label: "Blog", to: "/blog" },
   ].filter((item): item is NavItem => Boolean(item));
 
@@ -126,8 +125,8 @@ const Navbar = ({
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-background dark:bg-zinc-950 ${isScrolled
-            ? "py-4 border-b-4 border-black dark:border-white"
-            : "py-6 border-b-4 border-transparent"
+          ? "py-4 border-b-4 border-black dark:border-white"
+          : "py-6 border-b-4 border-transparent"
           }`}
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
@@ -151,9 +150,8 @@ const Navbar = ({
                     key={item.to}
                     to={item.to}
                     onClick={(event) => handleNavClick(event, item.to)}
-                    className={`relative font-mono font-bold text-sm group transition-colors dark:hover:text-white ${
-                      isActive ? "text-black dark:text-white" : "dark:text-zinc-300"
-                    }`}
+                    className={`relative font-mono font-bold text-sm group transition-colors dark:hover:text-white ${isActive ? "text-black dark:text-white" : "dark:text-zinc-300"
+                      }`}
                     aria-current={isActive ? "page" : undefined}
                   >
                     {/* The text */}
@@ -161,19 +159,17 @@ const Navbar = ({
 
                     {/* Hover highlight effect */}
                     <span
-                      className={`absolute bottom-0 left-0 w-full transition-all duration-300 -z-0 ${
-                        isActive
+                      className={`absolute bottom-0 left-0 w-full transition-all duration-300 -z-0 ${isActive
                           ? "h-full opacity-20"
                           : "h-0.5 opacity-0 group-hover:h-full group-hover:opacity-20"
-                      }`}
+                        }`}
                       style={{ backgroundColor: ACCENT_COLOR }}
                     />
 
                     {/* Bottom border on hover */}
                     <span
-                      className={`absolute bottom-0 left-0 h-1 bg-black dark:bg-white transition-all duration-300 ${
-                        isActive ? "w-full" : "w-0 group-hover:w-full"
-                      }`}
+                      className={`absolute bottom-0 left-0 h-1 bg-black dark:bg-white transition-all duration-300 ${isActive ? "w-full" : "w-0 group-hover:w-full"
+                        }`}
                       style={{ backgroundColor: ACCENT_COLOR }}
                     />
                   </Link>
@@ -245,11 +241,10 @@ const Navbar = ({
                   aria-current={isActive ? "page" : undefined}
                 >
                   <div
-                    className={`w-full p-4 border-4 bg-background dark:bg-zinc-900 dark:text-white font-black text-xl uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black group ${
-                      isActive
+                    className={`w-full p-4 border-4 bg-background dark:bg-zinc-900 dark:text-white font-black text-xl uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all active:translate-x-1 active:translate-y-1 active:shadow-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black group ${isActive
                         ? "border-[#ff4499] dark:border-[#ff4499]"
                         : "border-black dark:border-white"
-                    }`}
+                      }`}
                   >
                     <span className="text-[#ff4499] mr-2 group-hover:text-white dark:group-hover:text-black transition-colors">
                       0{index + 1}.
