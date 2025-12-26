@@ -66,7 +66,6 @@ export default function LifeControlBar({
             </button>
           </div>
 
-          {/* Start/Stop */}
           <button
             onClick={onToggleRunning}
             className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all hover:-translate-y-0.5"
