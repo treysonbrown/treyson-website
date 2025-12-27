@@ -1,6 +1,6 @@
 import { MouseEvent, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LifeControlBar from "@/components/LifeControlBar";
@@ -17,6 +17,9 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const heroRef = useRef<HTMLElement>(null);
+
+  // Accessibility: respect reduced motion preference
+  const prefersReducedMotion = useReducedMotion();
 
   // Conway's Game of Life state
   const [isLifeMode, setIsLifeMode] = useState(false);
@@ -123,18 +126,37 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-zinc-950 font-sans selection:text-white">
-      {isLifeMode ? (
-        <LifeControlBar
-          isRunning={isLifeRunning}
-          mode={lifeMode}
-          onToggleRunning={handleToggleRunning}
-          onSetMode={setLifeMode}
-          onClear={handleClear}
-          onExit={handleExitLifeMode}
-        />
-      ) : (
-        <Navbar activeSection={activeSection} />
-      )}
+      {/* Top bar crossfade between Navbar and LifeControlBar */}
+      <AnimatePresence initial={false}>
+        {isLifeMode ? (
+          <motion.div
+            key="life-topbar"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeInOut" }}
+          >
+            <LifeControlBar
+              isRunning={isLifeRunning}
+              mode={lifeMode}
+              onToggleRunning={handleToggleRunning}
+              onSetMode={setLifeMode}
+              onClear={handleClear}
+              onExit={handleExitLifeMode}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="site-navbar"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeInOut" }}
+          >
+            <Navbar activeSection={activeSection} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Dynamic Style Injection for Text Selection & Hover States */}
       <style>{`
@@ -162,40 +184,43 @@ const Index = () => {
         className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black dark:border-white bg-background dark:bg-zinc-950 transition-colors"
         style={{ cursor: isLifeMode ? undefined : "crosshair" }}
       >
-        {/* Engineering Grid Background - Inverted for Dark Mode (hidden in Life mode) */}
-        {!isLifeMode && (
-          <div className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] dark:bg-[linear-gradient(#27272a_1px,transparent_1px),linear-gradient(90deg,#27272a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
-        )}
+        {/* Engineering Grid Background - Inverted for Dark Mode (fades out in Life mode) */}
+        <AnimatePresence>
+          {!isLifeMode && (
+            <motion.div
+              key="hero-grid-bg"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+              className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] dark:bg-[linear-gradient(#27272a_1px,transparent_1px),linear-gradient(90deg,#27272a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+            />
+          )}
+        </AnimatePresence>
 
         {/* Game of Life Grid Overlay */}
-        {isLifeMode && (
-          <HeroLifeGrid
-            isRunning={isLifeRunning}
-            mode={lifeMode}
-            clearTrigger={clearTrigger}
-            initialCell={initialCell}
-          />
-        )}
+        <AnimatePresence>
+          {isLifeMode && (
+            <motion.div
+              key="life-grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+              className="absolute inset-0"
+            >
+              <HeroLifeGrid
+                isRunning={isLifeRunning}
+                mode={lifeMode}
+                clearTrigger={clearTrigger}
+                initialCell={initialCell}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Hero H1 - Always visible, but pointer-events disabled in Life mode so clicks pass through */}
-        <div
-          className={`max-w-4xl w-full relative z-20 text-center ${isLifeMode ? "pointer-events-none" : ""}`}
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Status badge - hidden in Life mode */}
-            {!isLifeMode && (
-              <div className="flex justify-center mb-8">
-                <span className="flex items-center gap-2 py-2 px-4 border-2 border-black dark:border-white font-mono text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] bg-card dark:bg-zinc-900 dark:text-white">
-                  <span className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: ACCENT_COLOR }}></span>
-                  STATUS: BUILDING
-                </span>
-              </div>
-            )}
-
+        {/* H1 pinned as an overlay so it never shifts; pointer-events disabled in Life mode */}
+        <div className={`absolute inset-0 z-20 flex items-center justify-center px-6 ${isLifeMode ? "pointer-events-none" : ""}`}>
+          <div className="max-w-4xl w-full text-center">
             <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center dark:text-white">
               <span className="block sm:inline">Treyson</span>
               <span className="block sm:inline sm:ml-3">
@@ -203,11 +228,27 @@ const Index = () => {
                 <span style={{ color: ACCENT_COLOR }}>.</span>
               </span>
             </h1>
-          </motion.div>
 
-          {/* Subtext and buttons - hidden in Life mode */}
-          {!isLifeMode && (
-            <>
+            {/* Subtext and buttons - always mounted, fade out visually in Life mode */}
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: isLifeMode ? 0 : 1,
+                scale: prefersReducedMotion ? 1 : isLifeMode ? 0.98 : 1,
+                filter: prefersReducedMotion ? "blur(0px)" : isLifeMode ? "blur(4px)" : "blur(0px)",
+              }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeOut" }}
+              style={{ pointerEvents: isLifeMode ? "none" : "auto" }}
+              aria-hidden={isLifeMode}
+            >
+              {/* Status badge */}
+              <div className="flex justify-center mb-8">
+                <span className="flex items-center gap-2 py-2 px-4 border-2 border-black dark:border-white font-mono text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] bg-card dark:bg-zinc-900 dark:text-white">
+                  <span className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: ACCENT_COLOR }}></span>
+                  STATUS: BUILDING
+                </span>
+              </div>
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -254,8 +295,8 @@ const Index = () => {
                   Contact Me
                 </Link>
               </motion.div>
-            </>
-          )}
+            </motion.div>
+          </div>
         </div>
       </section>
 
