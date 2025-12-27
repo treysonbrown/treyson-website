@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80">
+  <defs>
+    <!-- Define the grid with 8px cells -->
+    <pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+    </pattern>
+    
+    <!-- 
+      Cell Design: 
+      Width/Height are 7px inside an 8px grid space to create a 1px gap ("gutter").
+      This ensures each cell is clearly distinct from its neighbor.
+    -->
+    <g id="state1">
+      <rect x="16.5" y="40.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+      <rect x="24.5" y="40.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+      <rect x="32.5" y="40.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+    </g>
+    
+    <g id="state2">
+      <rect x="24.5" y="32.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+      <rect x="24.5" y="40.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+      <rect x="24.5" y="48.5" width="7" height="7" rx="1" fill="hsl(330, 100%, 50%)" />
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="80" fill="#0f172a" />
+  
+  <!-- Grid Layer -->
+  <rect width="64" height="80" fill="url(#grid)" />
+
+  <!-- Animation Logic: Snap/Discrete switching -->
+  <g>
+    <use href="#state1">
+      <animate attributeName="visibility" values="visible;hidden" dur="1s" repeatCount="indefinite" calcMode="discrete" />
+    </use>
+    <use href="#state2">
+      <animate attributeName="visibility" values="hidden;visible" dur="1s" repeatCount="indefinite" calcMode="discrete" />
+    </use>
+  </g>
+
+  <!-- Name: Treyson in Hot Pink -->
+  <text x="75" y="48" font-family="system-ui, sans-serif" font-weight="900" font-size="28" fill="hsl(330, 100%, 50%)">Treyson</text>
+</svg>

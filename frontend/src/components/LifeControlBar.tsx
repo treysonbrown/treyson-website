@@ -1,4 +1,4 @@
-import { Play, Pause, Pencil, Eraser, Trash2, RotateCcw, X } from "lucide-react";
+import { Play, Pause, Pencil, Eraser, Trash2, X } from "lucide-react";
 
 const ACCENT_COLOR = "#ff4499";
 
@@ -8,7 +8,6 @@ interface LifeControlBarProps {
   onToggleRunning: () => void;
   onSetMode: (mode: "draw" | "erase") => void;
   onClear: () => void;
-  onResetName: () => void;
   onExit: () => void;
 }
 
@@ -18,7 +17,6 @@ export default function LifeControlBar({
   onToggleRunning,
   onSetMode,
   onClear,
-  onResetName,
   onExit,
 }: LifeControlBarProps) {
   return (
@@ -66,6 +64,7 @@ export default function LifeControlBar({
             </button>
           </div>
 
+          {/* Start/Stop */}
           <button
             onClick={onToggleRunning}
             className="flex items-center gap-2 px-4 py-2 font-mono text-sm font-bold border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all hover:-translate-y-0.5"
@@ -96,17 +95,6 @@ export default function LifeControlBar({
           >
             <Trash2 size={16} />
             Clear
-          </button>
-
-          {/* Reset Name */}
-          <button
-            onClick={onResetName}
-            disabled={isRunning}
-            className="flex items-center gap-2 px-3 py-2 font-mono text-sm font-bold border-2 border-black dark:border-white bg-background dark:bg-zinc-900 dark:text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all hover:-translate-y-0.5 disabled:opacity-50"
-            title="Reset to TREYSON BROWN"
-          >
-            <RotateCcw size={16} />
-            Reset
           </button>
 
           {/* Exit */}
@@ -144,14 +132,14 @@ export default function LifeControlBar({
             {mode === "draw" ? <Pencil size={20} /> : <Eraser size={20} />}
           </button>
 
-          {/* Reset */}
+          {/* Clear */}
           <button
-            onClick={onResetName}
+            onClick={onClear}
             disabled={isRunning}
             className="p-2 border-2 border-black dark:border-white bg-background dark:bg-zinc-900 dark:text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] disabled:opacity-50"
-            title="Reset to TREYSON BROWN"
+            title="Clear all cells"
           >
-            <RotateCcw size={20} />
+            <Trash2 size={20} />
           </button>
 
           {/* Exit */}
@@ -167,4 +155,3 @@ export default function LifeControlBar({
     </nav>
   );
 }
-

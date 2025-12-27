@@ -1,7 +1,7 @@
-import { MouseEvent, useEffect, useState, useCallback } from "react";
+import { MouseEvent, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu, Grid3X3 } from "lucide-react";
+import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LifeControlBar from "@/components/LifeControlBar";
 import HeroLifeGrid from "@/components/HeroLifeGrid";
@@ -10,29 +10,25 @@ import { projects } from "@/data/projects";
 
 // --- CONFIGURATION ---
 const ACCENT_COLOR = "#ff4499";
+const CELL_SIZE = 40; // Must match HeroLifeGrid cell size
 
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
 
   // Conway's Game of Life state
   const [isLifeMode, setIsLifeMode] = useState(false);
   const [isLifeRunning, setIsLifeRunning] = useState(false);
   const [lifeMode, setLifeMode] = useState<"draw" | "erase">("draw");
-  const [resetTrigger, setResetTrigger] = useState(0);
   const [clearTrigger, setClearTrigger] = useState(0);
-
-  const handleEnterLifeMode = useCallback(() => {
-    setIsLifeMode(true);
-    setIsLifeRunning(false);
-    setLifeMode("draw");
-    setResetTrigger((n) => n + 1);
-  }, []);
+  const [initialCell, setInitialCell] = useState<{ row: number; col: number } | null>(null);
 
   const handleExitLifeMode = useCallback(() => {
     setIsLifeMode(false);
     setIsLifeRunning(false);
+    setInitialCell(null);
   }, []);
 
   const handleToggleRunning = useCallback(() => {
@@ -43,9 +39,36 @@ const Index = () => {
     setClearTrigger((n) => n + 1);
   }, []);
 
-  const handleResetName = useCallback(() => {
-    setResetTrigger((n) => n + 1);
-  }, []);
+  // Handle click on hero background to enter Life mode
+  const handleHeroPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      // Already in Life mode - let HeroLifeGrid handle it
+      if (isLifeMode) return;
+
+      // Check if the click is on an interactive element (button, link, etc.)
+      const target = e.target as HTMLElement;
+      const isInteractive = target.closest("a, button, [role='button'], input, textarea, select");
+      if (isInteractive) return;
+
+      // Get click position relative to hero section
+      const hero = heroRef.current;
+      if (!hero) return;
+
+      const rect = hero.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const col = Math.floor(x / CELL_SIZE);
+      const row = Math.floor(y / CELL_SIZE);
+
+      // Enter Life mode and set the initial cell
+      setInitialCell({ row, col });
+      setIsLifeMode(true);
+      setIsLifeRunning(false);
+      setLifeMode("draw");
+    },
+    [isLifeMode]
+  );
 
   useEffect(() => {
     if (!location.hash) return;
@@ -107,7 +130,6 @@ const Index = () => {
           onToggleRunning={handleToggleRunning}
           onSetMode={setLifeMode}
           onClear={handleClear}
-          onResetName={handleResetName}
           onExit={handleExitLifeMode}
         />
       ) : (
@@ -134,7 +156,12 @@ const Index = () => {
       `}</style>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black dark:border-white bg-background dark:bg-zinc-950 transition-colors">
+      <section
+        ref={heroRef}
+        onPointerDown={handleHeroPointerDown}
+        className="relative min-h-[90vh] flex flex-col justify-start md:justify-center items-center px-6 pt-32 pb-16 border-b-4 border-black dark:border-white bg-background dark:bg-zinc-950 transition-colors"
+        style={{ cursor: isLifeMode ? undefined : "crosshair" }}
+      >
         {/* Engineering Grid Background - Inverted for Dark Mode (hidden in Life mode) */}
         {!isLifeMode && (
           <div className="absolute inset-0 bg-[linear-gradient(#f0f0f0_1px,transparent_1px),linear-gradient(90deg,#f0f0f0_1px,transparent_1px)] dark:bg-[linear-gradient(#27272a_1px,transparent_1px),linear-gradient(90deg,#27272a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
@@ -145,97 +172,91 @@ const Index = () => {
           <HeroLifeGrid
             isRunning={isLifeRunning}
             mode={lifeMode}
-            resetTrigger={resetTrigger}
             clearTrigger={clearTrigger}
+            initialCell={initialCell}
           />
         )}
 
-        {/* Hero Content - hidden in Life mode */}
-        {!isLifeMode && (
-          <div className="max-w-4xl w-full space-y-8 z-10 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+        {/* Hero H1 - Always visible, but pointer-events disabled in Life mode so clicks pass through */}
+        <div
+          className={`max-w-4xl w-full relative z-20 text-center ${isLifeMode ? "pointer-events-none" : ""}`}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Status badge - hidden in Life mode */}
+            {!isLifeMode && (
               <div className="flex justify-center mb-8">
                 <span className="flex items-center gap-2 py-2 px-4 border-2 border-black dark:border-white font-mono text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] bg-card dark:bg-zinc-900 dark:text-white">
                   <span className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: ACCENT_COLOR }}></span>
                   STATUS: BUILDING
                 </span>
               </div>
+            )}
 
-              <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center dark:text-white">
-                <span className="block sm:inline">Treyson</span>
-                <span className="block sm:inline sm:ml-3">
-                  Brown
-                  <span style={{ color: ACCENT_COLOR }}>.</span>
-                </span>
-              </h1>
-            </motion.div>
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-6 text-center dark:text-white">
+              <span className="block sm:inline">Treyson</span>
+              <span className="block sm:inline sm:ml-3">
+                Brown
+                <span style={{ color: ACCENT_COLOR }}>.</span>
+              </span>
+            </h1>
+          </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-xl md:text-2xl font-mono text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
-            >
-              I'm Treyson. I build software for Principal Investigators to track
-              deadlines and burn rates. Founder at{" "}
-              <a
-                href="https://thesiserp.com"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block"
+          {/* Subtext and buttons - hidden in Life mode */}
+          {!isLifeMode && (
+            <>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-xl md:text-2xl font-mono text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
               >
-                <span
-                  className="font-bold border-b-4"
-                  style={{ borderColor: ACCENT_COLOR }}
+                I'm Treyson. I build software for Principal Investigators to track
+                deadlines and burn rates. Founder at{" "}
+                <a
+                  href="https://thesiserp.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block"
                 >
-                  Thesis
-                </span>
-              </a>
-              .
-            </motion.p>
+                  <span
+                    className="font-bold border-b-4"
+                    style={{ borderColor: ACCENT_COLOR }}
+                  >
+                    Thesis
+                  </span>
+                </a>
+                .
+              </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center pt-8"
-            >
-              <a
-                href="#projects"
-                onClick={(event) => handleSectionLinkClick(event, "#projects")}
-                className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-black dark:bg-zinc-100 dark:text-black border-2 border-black dark:border-white font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ff4499] hover:-translate-y-1"
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center pt-8"
               >
-                View My Work
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </a>
-              <Link
-                to={{ pathname: "/", hash: "#contact" }}
-                onClick={(event) => handleSectionLinkClick(event, "#contact")}
-                className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-black dark:text-white transition-all duration-200 bg-card dark:bg-zinc-900 border-2 border-black dark:border-white font-mono hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
-              >
-                Contact Me
-              </Link>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Conway's Game of Life Entry Button - at bottom of hero */}
-        {!isLifeMode && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            onClick={handleEnterLifeMode}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 font-mono text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white bg-background/80 dark:bg-zinc-950/80 backdrop-blur-sm transition-all hover:-translate-y-0.5"
-          >
-            <Grid3X3 size={14} />
-            Conway's Game of Life
-          </motion.button>
-        )}
+                <a
+                  href="#projects"
+                  onClick={(event) => handleSectionLinkClick(event, "#projects")}
+                  className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-black dark:bg-zinc-100 dark:text-black border-2 border-black dark:border-white font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_#ff4499] hover:-translate-y-1"
+                >
+                  View My Work
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+                <Link
+                  to={{ pathname: "/", hash: "#contact" }}
+                  onClick={(event) => handleSectionLinkClick(event, "#contact")}
+                  className="hover-accent-shadow group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-black dark:text-white transition-all duration-200 bg-card dark:bg-zinc-900 border-2 border-black dark:border-white font-mono hover:-translate-y-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                >
+                  Contact Me
+                </Link>
+              </motion.div>
+            </>
+          )}
+        </div>
       </section>
 
       {/* --- ABOUT SECTION --- */}

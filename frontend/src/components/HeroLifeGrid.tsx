@@ -1,14 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { seedText } from "@/lib/lifeFont";
 
-const CELL_SIZE = 20; // 20px cells = 4 cells per 40px grid square
-const MAJOR_GRID_SIZE = 40; // Original grid line spacing
+const CELL_SIZE = 40; // 40px cells matching the hero grid background
 
 interface HeroLifeGridProps {
   isRunning: boolean;
   mode: "draw" | "erase";
-  resetTrigger: number; // Increment to trigger reset
   clearTrigger: number; // Increment to trigger clear
+  initialCell?: { row: number; col: number } | null; // First cell to set alive on mount
 }
 
 // Conway's Game of Life step function with bounded edges
@@ -54,8 +52,8 @@ function stepLife(
 export default function HeroLifeGrid({
   isRunning,
   mode,
-  resetTrigger,
   clearTrigger,
+  initialCell,
 }: HeroLifeGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,10 +61,11 @@ export default function HeroLifeGrid({
   const dimsRef = useRef<{ cols: number; rows: number }>({ cols: 0, rows: 0 });
   const isDrawingRef = useRef(false);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
+  const initialCellAppliedRef = useRef(false);
   const [, forceRender] = useState(0);
 
-  // Initialize or resize grid
-  const initGrid = useCallback((seedName: boolean = true) => {
+  // Initialize or resize grid (always starts empty, optionally sets initial cell)
+  const initGrid = useCallback((cellToSet?: { row: number; col: number } | null) => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
@@ -84,11 +83,12 @@ export default function HeroLifeGrid({
     dimsRef.current = { cols, rows };
     gridRef.current = new Uint8Array(cols * rows);
 
-    if (seedName) {
-      // Seed "TREYSON BROWN" in block letters
-      const cells = seedText("TREYSON BROWN", cols, rows);
-      for (const [row, col] of cells) {
+    // Apply initial cell if provided
+    if (cellToSet && !initialCellAppliedRef.current) {
+      const { row, col } = cellToSet;
+      if (row >= 0 && row < rows && col >= 0 && col < cols) {
         gridRef.current[row * cols + col] = 1;
+        initialCellAppliedRef.current = true;
       }
     }
 
@@ -112,36 +112,17 @@ export default function HeroLifeGrid({
     // Get computed styles for theming
     const isDark = document.documentElement.classList.contains("dark");
     const cellColor = isDark ? "#ff4499" : "#ff4499";
-    const majorGridColor = isDark ? "#3f3f46" : "#e5e5e5";
-    const minorGridColor = isDark ? "#27272a" : "#f0f0f0";
+    const gridColor = isDark ? "#3f3f46" : "#e5e5e5";
 
-    // Draw minor grid lines (20px)
-    ctx.strokeStyle = minorGridColor;
+    // Draw grid lines (40px, matching hero background)
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = 0; x <= width; x += CELL_SIZE) {
-      if (x % MAJOR_GRID_SIZE !== 0) {
-        ctx.moveTo(x + 0.5, 0);
-        ctx.lineTo(x + 0.5, height);
-      }
-    }
-    for (let y = 0; y <= height; y += CELL_SIZE) {
-      if (y % MAJOR_GRID_SIZE !== 0) {
-        ctx.moveTo(0, y + 0.5);
-        ctx.lineTo(width, y + 0.5);
-      }
-    }
-    ctx.stroke();
-
-    // Draw major grid lines (40px) - slightly stronger
-    ctx.strokeStyle = majorGridColor;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 0; x <= width; x += MAJOR_GRID_SIZE) {
       ctx.moveTo(x + 0.5, 0);
       ctx.lineTo(x + 0.5, height);
     }
-    for (let y = 0; y <= height; y += MAJOR_GRID_SIZE) {
+    for (let y = 0; y <= height; y += CELL_SIZE) {
       ctx.moveTo(0, y + 0.5);
       ctx.lineTo(width, y + 0.5);
     }
@@ -238,19 +219,18 @@ export default function HeroLifeGrid({
     lastCellRef.current = null;
   }, []);
 
-  // Initialize on mount
+  // Initialize on mount (pass initialCell to set it immediately after grid is created)
   useEffect(() => {
-    initGrid(true);
+    initGrid(initialCell);
 
     const handleResize = () => {
-      // Preserve grid state on resize if possible
-      initGrid(false);
+      initGrid();
       draw();
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [initGrid, draw]);
+  }, [initGrid, initialCell, draw]);
 
   // Draw when grid changes
   useEffect(() => {
@@ -272,14 +252,6 @@ export default function HeroLifeGrid({
 
     return () => clearInterval(interval);
   }, [isRunning, draw]);
-
-  // Handle reset trigger
-  useEffect(() => {
-    if (resetTrigger > 0) {
-      initGrid(true);
-      draw();
-    }
-  }, [resetTrigger, initGrid, draw]);
 
   // Handle clear trigger
   useEffect(() => {
@@ -306,4 +278,3 @@ export default function HeroLifeGrid({
     </div>
   );
 }
-
