@@ -1,5 +1,6 @@
 import thesisImage from "@/assets/Thesis.png";
 import pharmaEduImage from "@/assets/pharma-edu.png";
+import statsImage from "@/assets/stats.png";
 
 export interface Project {
   slug: string;
@@ -25,6 +26,16 @@ export const projects: Project[] = [
     liveUrl: "https://thesiserp.com",
     status: "PRODUCTION",
     image: thesisImage,
+  },
+  {
+    slug: "stats",
+    title: "Stats",
+    shortDescription:
+      "A stat tracker with heatmaps.",
+    tech: ["React", "FastAPI", "PostgreSQL", "SQLModel"],
+    liveUrl: "https://stats.treyson.org/treyson",
+    status: "PRODUCTION",
+    image: statsImage,
   },
   {
     slug: "pharma-edu",

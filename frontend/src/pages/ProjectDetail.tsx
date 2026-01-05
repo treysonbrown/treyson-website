@@ -16,7 +16,8 @@ const ProjectDetail = () => {
           <div className="text-center">
             <h1 className="mb-4 text-4xl font-black">Project not found</h1>
             <p className="mb-6 text-gray-600">
-              The project you&apos;re looking for doesn&apos;t exist or the link is incorrect.
+              The project you&apos;re looking for doesn&apos;t exist or the link
+              is incorrect.
             </p>
             <Link
               to="/"
@@ -118,20 +119,10 @@ const ProjectDetail = () => {
                 <img
                   src={project.image}
                   alt={project.title}
-                  className="h-full w-full object-cover"
+                  className="w-full h-auto object-contain"
                 />
               </div>
             )}
-
-            <div className="border-2 border-black bg-card p-4 font-mono text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:bg-zinc-900 dark:text-zinc-200">
-              <p className="mb-2 font-bold">// PROJECT_NOTES</p>
-              <p>
-                This page is a deeper dive into the work behind{" "}
-                <span className="font-bold">{project.title}</span>. Use it when
-                sharing with collaborators, mentors, or potential clients to
-                give more context than the homepage card provides.
-              </p>
-            </div>
           </aside>
         </div>
       </main>
