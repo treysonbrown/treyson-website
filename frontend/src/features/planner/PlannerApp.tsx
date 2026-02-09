@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
-import { Plus, Settings } from "lucide-react";
+import { ArrowLeft, Columns2, PanelLeft, Plus, Settings, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ const ACCENT_UTILITY_BUTTON_CLASS =
   "bg-background dark:bg-zinc-950 text-black dark:text-white hover:border-[#ff5cab] hover:text-[#ff9fd0] hover:bg-[#ff5cab]/10";
 
 export default function PlannerApp() {
+  const navigate = useNavigate();
   const { isLoaded, isSignedIn } = useAuth();
   const me = useQuery("users:me" as never) as
     | null
@@ -52,12 +53,23 @@ export default function PlannerApp() {
   const createProject = useMutation("planner:createProject" as never) as unknown as (args: {
     name: string;
   }) => Promise<string>;
+  const inviteByUsername = useMutation("planner:inviteByUsername" as never) as unknown as (args: {
+    projectId: string;
+    username: string;
+  }) => Promise<string>;
+  const createColumn = useMutation("planner:createColumn" as never) as unknown as (args: {
+    projectId: string;
+    title: string;
+  }) => Promise<string>;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedProjectId = searchParams.get("project") ?? "";
 
   const [newProjectName, setNewProjectName] = useState("");
   const [newUsername, setNewUsername] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [newColumnTitle, setNewColumnTitle] = useState("");
 
   const hasRunUpsert = useRef(false);
   useEffect(() => {
@@ -86,6 +98,17 @@ export default function PlannerApp() {
     if (!me) return;
     setNewUsername(me.username);
   }, [me]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const handleCreateProject = async () => {
     const name = newProjectName.trim();
@@ -217,16 +240,63 @@ export default function PlannerApp() {
 
   const selected = sortedProjects.find((p) => p._id === selectedProjectId) ?? sortedProjects[0];
 
+  const handleInvite = async () => {
+    const username = inviteUsername.trim();
+    if (!username) {
+      toast.error("Username is required");
+      return;
+    }
+    try {
+      await inviteByUsername({ projectId: selected._id, username });
+      setInviteUsername("");
+      toast.success(`Invited @${username}`);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleCreateColumn = async () => {
+    const title = newColumnTitle.trim();
+    if (!title) {
+      toast.error("Column title is required");
+      return;
+    }
+    try {
+      await createColumn({ projectId: selected._id, title });
+      setNewColumnTitle("");
+      toast.success("Column created");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
   return (
-    <div className="w-full grid gap-6 lg:grid-cols-[320px_1fr]">
-      <aside className="border-4 border-black dark:border-white bg-card dark:bg-zinc-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] overflow-hidden">
+    <div className="w-full">
+      <div
+        className={`w-full grid gap-6 ${sidebarOpen ? "lg:grid-cols-[320px_1fr]" : "lg:grid-cols-[72px_1fr]"}`}
+      >
+      {sidebarOpen ? (
+      <aside className="border-4 border-black dark:border-white bg-card dark:bg-zinc-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] overflow-hidden self-start">
         <div className="border-b-4 border-black dark:border-white p-5 bg-background dark:bg-zinc-950">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                Signed in as
-              </p>
-              <p className="font-black text-lg dark:text-white">@{me?.username}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                title="Toggle sidebar (Cmd/Ctrl+B)"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                className={`group relative h-10 w-10 border-2 border-black dark:border-white ${ACCENT_UTILITY_BUTTON_CLASS} flex items-center justify-center`}
+              >
+                <PanelLeft className="h-4 w-4" />
+                <span className="pointer-events-none absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap border-2 border-black dark:border-white bg-card dark:bg-zinc-900 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest opacity-0 transition-opacity group-hover:opacity-100">
+                  Cmd/Ctrl+B
+                </span>
+              </button>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                  Signed in as
+                </p>
+                <p className="font-black text-lg dark:text-white">@{me?.username}</p>
+              </div>
             </div>
             <Dialog>
               <DialogTrigger asChild>
@@ -265,6 +335,93 @@ export default function PlannerApp() {
         </div>
 
         <div className="p-5 space-y-6">
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              onClick={() => navigate(-1)}
+              className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Invite
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+                <DialogHeader>
+                  <DialogTitle className="font-black uppercase tracking-tight">Invite by username</DialogTitle>
+                  <DialogDescription className="font-mono">
+                    Add teammates to this project from the sidebar.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <Input
+                    value={inviteUsername}
+                    onChange={(e) => setInviteUsername(e.target.value)}
+                    placeholder="username"
+                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleInvite();
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleInvite}
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+                  >
+                    Send Invite
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
+                >
+                  <Columns2 className="mr-2 h-4 w-4" />
+                  Column
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+                <DialogHeader>
+                  <DialogTitle className="font-black uppercase tracking-tight">Create column</DialogTitle>
+                  <DialogDescription className="font-mono">
+                    Add a section to the selected project.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <Input
+                    value={newColumnTitle}
+                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                    placeholder='e.g. "In Progress"'
+                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateColumn();
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleCreateColumn}
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+                  >
+                    Create
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
@@ -343,10 +500,26 @@ export default function PlannerApp() {
           </div>
         </div>
       </aside>
+      ) : (
+        <div className="self-start">
+          <button
+            type="button"
+            title="Open sidebar (Cmd/Ctrl+B)"
+            onClick={() => setSidebarOpen(true)}
+            className={`group relative h-10 w-10 border-2 border-black dark:border-white ${ACCENT_UTILITY_BUTTON_CLASS} flex items-center justify-center`}
+          >
+            <PanelLeft className="h-4 w-4" />
+            <span className="pointer-events-none absolute left-12 top-1/2 -translate-y-1/2 whitespace-nowrap border-2 border-black dark:border-white bg-card dark:bg-zinc-900 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest opacity-0 transition-opacity group-hover:opacity-100">
+              Cmd/Ctrl+B
+            </span>
+          </button>
+        </div>
+      )}
 
       <section className="min-w-0">
-        <ProjectBoard projectId={selected._id} />
+        <ProjectBoard projectId={selected._id} showProjectActions={false} />
       </section>
+      </div>
     </div>
   );
 }

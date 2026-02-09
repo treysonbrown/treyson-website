@@ -69,7 +69,13 @@ const ACCENT_PRIMARY_BUTTON_CLASS =
 const ACCENT_UTILITY_BUTTON_CLASS =
   "bg-background dark:bg-zinc-950 text-black dark:text-white hover:border-[#ff5cab] hover:text-[#ff9fd0] hover:bg-[#ff5cab]/10";
 
-export default function ProjectBoard({ projectId }: { projectId: string }) {
+export default function ProjectBoard({
+  projectId,
+  showProjectActions = true,
+}: {
+  projectId: string;
+  showProjectActions?: boolean;
+}) {
   const board = useQuery("planner:getBoard" as never, { projectId } as never) as
     | undefined
     | null
@@ -327,79 +333,83 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
               </div>
             </div>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  type="button"
-                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Invite
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
-                <DialogHeader>
-                  <DialogTitle className="font-black uppercase tracking-tight">Invite by username</DialogTitle>
-                  <DialogDescription className="font-mono">
-                    They must have signed in at least once to claim a username.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <Input
-                    value={inviteUsername}
-                    onChange={(e) => setInviteUsername(e.target.value)}
-                    placeholder="username"
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleInvite();
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleInvite}
-                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
-                  >
-                    Send Invite
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            {showProjectActions ? (
+              <>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Invite
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-none border-2 border-black dark:border-white">
+                    <DialogHeader>
+                      <DialogTitle className="font-black uppercase tracking-tight">Invite by username</DialogTitle>
+                      <DialogDescription className="font-mono">
+                        They must have signed in at least once to claim a username.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <Input
+                        value={inviteUsername}
+                        onChange={(e) => setInviteUsername(e.target.value)}
+                        placeholder="username"
+                        className="rounded-none border-2 border-black dark:border-white font-mono"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleInvite();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleInvite}
+                        className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+                      >
+                        Send Invite
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  type="button"
-                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
-                >
-                  <Columns2 className="mr-2 h-4 w-4" />
-                  Column
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
-                <DialogHeader>
-                  <DialogTitle className="font-black uppercase tracking-tight">Create column</DialogTitle>
-                  <DialogDescription className="font-mono">Add a new section to the board.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <Input
-                    value={newColumnTitle}
-                    onChange={(e) => setNewColumnTitle(e.target.value)}
-                    placeholder='e.g. "In Progress"'
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreateColumn();
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleCreateColumn}
-                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
-                  >
-                    Create
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
+                    >
+                      <Columns2 className="mr-2 h-4 w-4" />
+                      Column
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-none border-2 border-black dark:border-white">
+                    <DialogHeader>
+                      <DialogTitle className="font-black uppercase tracking-tight">Create column</DialogTitle>
+                      <DialogDescription className="font-mono">Add a new section to the board.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <Input
+                        value={newColumnTitle}
+                        onChange={(e) => setNewColumnTitle(e.target.value)}
+                        placeholder='e.g. "In Progress"'
+                        className="rounded-none border-2 border-black dark:border-white font-mono"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleCreateColumn();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleCreateColumn}
+                        className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+                      >
+                        Create
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : null}
           </div>
         </div>
 
