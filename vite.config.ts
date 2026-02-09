@@ -4,14 +4,16 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode }) => ({
   server: {
     host: "::",
     port: 8080,
     allowedHosts: ["treyson.org"]
   },
   plugins: [
-    react(),
+    // Explicitly control JSX runtime: only use dev JSX when running the dev server.
+    // This prevents _jsxDEV errors if the build mode is overridden by the deployment platform.
+    react({ development: command === "serve" }),
     mode === "development" && process.env.LOVABLE_DEV_SERVER === "true" && componentTagger(),
   ].filter(Boolean),
   resolve: {
