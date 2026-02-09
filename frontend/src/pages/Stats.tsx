@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Terminal, Activity, Github } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO, subDays, eachDayOfInterval, subYears, startOfWeek } from "date-fns";
@@ -6,10 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer, Tooltip } from "recharts";
 
 import Navbar from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -24,7 +20,6 @@ import {
   type GitHubContributionsResponse,
 } from "@/lib/github";
 import { useWorkLog, type WorkLogEntry } from "@/hooks/useWorkLog";
-import { supabase } from "@/lib/supabaseClient";
 
 const ACCENT_COLOR = "#ff4499";
 const TOOLTIP_WIDTH = 250;
@@ -69,10 +64,7 @@ type VelocityTooltipProps = {
   payload?: VelocityChartPayload[];
 };
 
-type VelocityBarClickArg = VelocityChartEntry | {
-  payload?: VelocityChartEntry;
-  activePayload?: VelocityChartPayload[];
-};
+type VelocityBarClickArg = unknown;
 
 type DayDetail = {
   totalHours: number;
@@ -534,21 +526,13 @@ const GitHubHeatmap = ({
 };
 
 const Stats = () => {
-  const todayIso = format(new Date(), "yyyy-MM-dd");
-  const [date, setDate] = useState(todayIso);
-  const [hours, setHours] = useState("");
-  const [description, setDescription] = useState("");
-  const [tag, setTag] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+  // work log entry removed
 
   const {
     entries,
-    addEntry,
     totalHours,
     totalDaysTracked,
     isLoading: isWorkLogLoading,
-    isSubmitting: isWorkLogSubmitting,
-    canEdit,
   } = useWorkLog();
   const [selectedDay, setSelectedDay] = useState<{ date: Date; data: DayDetail | undefined } | null>(null);
   const selectedEntries = selectedDay?.data?.entries ?? [];
@@ -602,50 +586,26 @@ const Stats = () => {
   }, [entries]);
 
   const handleVelocityBarClick = (barData?: VelocityBarClickArg) => {
-    if (!barData) return;
-    const payload =
-      "activePayload" in barData && barData.activePayload?.length
-        ? barData.activePayload[0]?.payload
-        : "payload" in barData
-          ? barData.payload
-          : barData;
-    if (!payload) return;
+    const data = (() => {
+      if (!barData || typeof barData !== "object") return undefined;
+      const maybe = barData as any;
+      if (maybe?.workDate) return maybe as VelocityChartEntry;
+      if (maybe?.payload?.workDate) return maybe.payload as VelocityChartEntry;
+      if (maybe?.activePayload?.[0]?.payload?.workDate) return maybe.activePayload[0].payload as VelocityChartEntry;
+      return undefined;
+    })();
+    if (!data) return;
+
     setSelectedDay({
-      date: payload.workDate,
+      date: data.workDate,
       data: {
-        totalHours: payload.hours,
-        entries: payload.entries,
+        totalHours: data.hours,
+        entries: data.entries,
       },
     });
   };
 
-  const handleAddEntry = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canEdit) {
-      setFormError("Only the authorized account can log work.");
-      return;
-    }
-    const parsedHours = parseFloat(hours);
-    if (!date) return setFormError("Choose a date.");
-    if (Number.isNaN(parsedHours) || parsedHours < 0) return setFormError("Invalid hours.");
-
-    try {
-      await addEntry({ date, hours: parsedHours, description, tag });
-      setHours("");
-      setDescription("");
-      setTag("");
-      setFormError(null);
-    } catch (error) {
-      setFormError("Failed to save entry.");
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      console.log("access token:", data.session?.access_token);
-    });
-  }, []);
+  // work log entry removed
 
   // Ensure page starts at the top when navigating here.
   useEffect(() => {
@@ -817,78 +777,7 @@ const Stats = () => {
           </div>
         </section>
 
-        {/* --- LOG NEW WORK (CONDITIONAL) --- */}
-        {canEdit && (
-          <section className="border-4 border-black dark:border-white bg-yellow-50 dark:bg-zinc-800 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-            <div className="mb-6 border-b-2 border-black dark:border-white pb-4">
-              <h2 className="text-3xl font-black uppercase dark:text-white">Log Entry</h2>
-              <p className="font-mono text-sm text-gray-600 dark:text-gray-400 mt-1">Admin Access Granted</p>
-            </div>
-
-            <form onSubmit={handleAddEntry} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="log-date" className="font-mono font-bold uppercase dark:text-white">Date</Label>
-                  <Input
-                    id="log-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    max={todayIso}
-                    disabled={isWorkLogLoading || isWorkLogSubmitting}
-                    className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 dark:text-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)] rounded-none h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="log-hours" className="font-mono font-bold uppercase dark:text-white">Hours</Label>
-                  <Input
-                    id="log-hours"
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    value={hours}
-                    onChange={(e) => setHours(e.target.value)}
-                    className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 dark:text-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)] rounded-none h-12"
-                    placeholder="0.0"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="log-desc" className="font-mono font-bold uppercase dark:text-white">Description</Label>
-                <Textarea
-                  id="log-desc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 dark:text-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)] rounded-none min-h-[100px]"
-                  placeholder="What did you ship today?"
-                />
-              </div>
-
-              <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end">
-                <div className="space-y-2">
-                  <Label htmlFor="log-tag" className="font-mono font-bold uppercase dark:text-white">Tag</Label>
-                  <Input
-                    id="log-tag"
-                    value={tag}
-                    onChange={(e) => setTag(e.target.value)}
-                    className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 dark:text-white focus-visible:ring-0 focus-visible:border-[color:var(--accent)] rounded-none h-12"
-                    placeholder="planning, dev, debug..."
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={isWorkLogLoading || isWorkLogSubmitting}
-                  className="h-12 px-8 bg-black dark:bg-white text-white dark:text-black hover:bg-[color:var(--accent)] dark:hover:bg-[color:var(--accent)] hover:text-white dark:hover:text-white rounded-none border-2 border-black dark:border-white font-bold uppercase tracking-widest transition-all"
-                  style={{ '--accent': ACCENT_COLOR } as CSSProperties}
-                >
-                  {isWorkLogSubmitting ? "SAVING..." : "COMMIT LOG"}
-                </Button>
-              </div>
-              {formError && <p className="font-mono text-red-600 font-bold bg-red-100 p-2 border-l-4 border-red-600">{formError}</p>}
-            </form>
-          </section>
-        )}
+        {/* Work log entry UI removed */}
 
       </main>
     </div>

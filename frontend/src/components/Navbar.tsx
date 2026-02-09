@@ -2,6 +2,7 @@ import { MouseEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useAuth } from "@clerk/clerk-react";
 import { extractSectionId, scrollToSection } from "@/utils/scrollToSection";
 
 // --- CONFIGURATION ---
@@ -23,6 +24,7 @@ const Navbar = ({
   useAbsolutePaths = false,
   activeSection,
 }: NavbarProps) => {
+  const { isSignedIn } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -34,8 +36,8 @@ const Navbar = ({
     showHomeLink ? { label: "Home", to: "/" } : null,
     { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
     { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
+    isSignedIn ? { label: "Planner", to: "/planner" } : null,
     { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
-    { label: "Blog", to: "/blog" },
   ].filter((item): item is NavItem => Boolean(item));
 
   const normalizePath = (path: string) => {

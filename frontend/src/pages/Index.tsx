@@ -2,6 +2,7 @@ import { MouseEvent, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
+import { useQuery } from "convex/react";
 import Navbar from "@/components/Navbar";
 import LifeControlBar from "@/components/LifeControlBar";
 import HeroLifeGrid from "@/components/HeroLifeGrid";
@@ -13,6 +14,7 @@ const ACCENT_COLOR = "#ff4499";
 const CELL_SIZE = 40; // Must match HeroLifeGrid cell size
 
 const Index = () => {
+  const isAdmin = useQuery("auth:isAdmin" as any) as boolean | undefined;
   const location = useLocation();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -530,15 +532,19 @@ const Index = () => {
       <footer className="py-8 bg-black dark:bg-zinc-950 text-white text-center font-mono text-sm border-t-4 border-black dark:border-white">
         <p>
           &copy; {new Date().getFullYear()} Treyson Brown. {" "}
-          <a
-            href="https://github.com/treysonbrown/treyson-website"
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:text-zinc-300"
-          >
-            View my source code
-          </a>
-          .
+          {isAdmin ? null : (
+            <>
+              <a
+                href="https://github.com/treysonbrown/treyson-website"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-zinc-300"
+              >
+                View my source code
+              </a>
+              .
+            </>
+          )}
         </p>
       </footer>
     </div>
