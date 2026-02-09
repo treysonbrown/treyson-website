@@ -109,6 +109,16 @@ export default function PlannerApp() {
   }, [me]);
 
   useEffect(() => {
+    if (!sortedProjects || sortedProjects.length === 0) {
+      document.title = "Plan Planner";
+      return;
+    }
+    const selectedName =
+      sortedProjects.find((p) => p._id === selectedProjectId)?.name ?? sortedProjects[0].name;
+    document.title = `Plan ${selectedName}`;
+  }, [sortedProjects, selectedProjectId]);
+
+  useEffect(() => {
     setIsThemeMounted(true);
   }, []);
 
@@ -170,9 +180,10 @@ export default function PlannerApp() {
 
   if (!sortedProjects || sortedProjects.length === 0) {
     return (
-      <div className="w-full max-w-3xl">
-        <div className="border-4 border-black dark:border-white bg-card dark:bg-zinc-900 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-          <div className="flex items-start justify-between gap-6">
+      <div className="w-full min-h-[calc(100vh-3rem)] flex items-center justify-center">
+        <div className="w-full max-w-3xl">
+          <div className="border-4 border-black dark:border-white bg-card dark:bg-zinc-900 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <div className="flex items-start justify-between gap-6">
             <div>
               <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
                 Getting Started
@@ -220,31 +231,32 @@ export default function PlannerApp() {
             </Dialog>
           </div>
 
-          <div className="mt-8 grid gap-3 md:grid-cols-[1fr_auto]">
-            <Input
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder='e.g. "Website Launch"'
-              className="rounded-none border-2 border-black dark:border-white font-mono"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateProject();
-              }}
-            />
-            <Button
-              type="button"
-              onClick={handleCreateProject}
-              className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create
-            </Button>
-          </div>
+            <div className="mt-8 grid gap-3 md:grid-cols-[1fr_auto]">
+              <Input
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder='e.g. "Website Launch"'
+                className="rounded-none border-2 border-black dark:border-white font-mono"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateProject();
+                }}
+              />
+              <Button
+                type="button"
+                onClick={handleCreateProject}
+                className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create
+              </Button>
+            </div>
 
-          <div className="mt-6 border-2 border-black dark:border-white bg-background dark:bg-zinc-950 p-4">
-            <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
-              Your handle
-            </p>
-            <p className="mt-1 font-black text-lg dark:text-white">@{me?.username ?? "..."}</p>
+            <div className="mt-6 border-2 border-black dark:border-white bg-background dark:bg-zinc-950 p-4">
+              <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                Your handle
+              </p>
+              <p className="mt-1 font-black text-lg dark:text-white">@{me?.username ?? "..."}</p>
+            </div>
           </div>
         </div>
       </div>
