@@ -32,6 +32,11 @@ type ProjectDoc = {
   role?: "owner" | "member";
 };
 
+const ACCENT_PRIMARY_BUTTON_CLASS =
+  "bg-[#ff5cab] text-black hover:bg-[#ff78ba] dark:bg-[#ff5cab] dark:text-black dark:hover:bg-[#ff78ba] shadow-[3px_3px_0px_0px_rgba(255,92,171,0.35)]";
+const ACCENT_UTILITY_BUTTON_CLASS =
+  "bg-background dark:bg-zinc-950 text-black dark:text-white hover:border-[#ff5cab] hover:text-[#ff9fd0] hover:bg-[#ff5cab]/10";
+
 export default function PlannerApp() {
   const { isLoaded, isSignedIn } = useAuth();
   const me = useQuery("users:me" as never) as
@@ -147,8 +152,7 @@ export default function PlannerApp() {
               <DialogTrigger asChild>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
                 >
                   <Settings className="mr-2 h-4 w-4" />
                   Username
@@ -171,7 +175,7 @@ export default function PlannerApp() {
                   <Button
                     type="button"
                     onClick={handleSetUsername}
-                    className="w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                   >
                     Save
                   </Button>
@@ -193,7 +197,7 @@ export default function PlannerApp() {
             <Button
               type="button"
               onClick={handleCreateProject}
-              className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+              className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
             >
               <Plus className="mr-2 h-4 w-4" />
               Create
@@ -228,8 +232,7 @@ export default function PlannerApp() {
               <DialogTrigger asChild>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
@@ -251,7 +254,7 @@ export default function PlannerApp() {
                   <Button
                     type="button"
                     onClick={handleSetUsername}
-                    className="w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                   >
                     Save
                   </Button>
@@ -271,8 +274,7 @@ export default function PlannerApp() {
                 <DialogTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="h-9 rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                    className={`h-9 rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -297,7 +299,7 @@ export default function PlannerApp() {
                     <Button
                       type="button"
                       onClick={handleCreateProject}
-                      className="w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                      className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                     >
                       Create
                     </Button>
@@ -315,7 +317,7 @@ export default function PlannerApp() {
                     type="button"
                     onClick={() => setSearchParams({ project: p._id })}
                     className={`text-left w-full border-2 rounded-none px-3 py-2 transition-colors ${isActive
-                      ? "border-black dark:border-white bg-black text-white dark:bg-white dark:text-black"
+                      ? "border-[#ff5cab] bg-[#ff5cab]/15 text-black dark:text-white"
                       : "border-black/60 dark:border-white/60 bg-background dark:bg-zinc-950 hover:bg-gray-50 dark:hover:bg-zinc-800 dark:text-white"
                       }`}
                   >

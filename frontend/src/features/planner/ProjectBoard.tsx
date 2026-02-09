@@ -64,6 +64,11 @@ const formatDueDateLabel = (dueDate?: number) => {
   return new Date(dueDate).toLocaleDateString();
 };
 
+const ACCENT_PRIMARY_BUTTON_CLASS =
+  "bg-[#ff5cab] text-black hover:bg-[#ff78ba] dark:bg-[#ff5cab] dark:text-black dark:hover:bg-[#ff78ba] shadow-[3px_3px_0px_0px_rgba(255,92,171,0.35)]";
+const ACCENT_UTILITY_BUTTON_CLASS =
+  "bg-background dark:bg-zinc-950 text-black dark:text-white hover:border-[#ff5cab] hover:text-[#ff9fd0] hover:bg-[#ff5cab]/10";
+
 export default function ProjectBoard({ projectId }: { projectId: string }) {
   const board = useQuery("planner:getBoard" as never, { projectId } as never) as
     | undefined
@@ -326,8 +331,7 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
               <DialogTrigger asChild>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
                 >
                   <Users className="mr-2 h-4 w-4" />
                   Invite
@@ -353,7 +357,7 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
                   <Button
                     type="button"
                     onClick={handleInvite}
-                    className="w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                   >
                     Send Invite
                   </Button>
@@ -365,8 +369,7 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
               <DialogTrigger asChild>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_UTILITY_BUTTON_CLASS}`}
                 >
                   <Columns2 className="mr-2 h-4 w-4" />
                   Column
@@ -390,7 +393,7 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
                   <Button
                     type="button"
                     onClick={handleCreateColumn}
-                    className="w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                    className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                   >
                     Create
                   </Button>
@@ -554,9 +557,8 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
                       />
                       <Button
                         type="button"
-                        variant="outline"
                         onClick={() => handleCreateTask(col._id)}
-                        className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                        className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Add Task
@@ -613,7 +615,7 @@ export default function ProjectBoard({ projectId }: { projectId: string }) {
                 <Button
                   type="button"
                   onClick={handleSaveTaskDetails}
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider"
+                  className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
                 >
                   Save Task
                 </Button>

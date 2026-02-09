@@ -55,7 +55,7 @@ const Planner = () => {
                 <div className="bg-gray-50 dark:bg-zinc-800 border-2 border-black dark:border-white p-4 font-mono text-sm dark:text-gray-300">
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase mb-1">Session</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: ACCENT_COLOR }} />
                     <div className="shrink-0">
                       <UserButton />
                     </div>
