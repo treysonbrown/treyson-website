@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run verify:bundle",
-    "build:dev": "vite build --mode development && npm run verify:bundle",
+    "build:dev": "node -e \"console.error('build:dev is disabled to prevent shipping dev JSX runtime. Use npm run build.'); process.exit(1)\"",
+    "start": "vite preview --host 0.0.0.0 --port ${PORT:-8080}",
     "verify:bundle": "node ./scripts/verify-prod-bundle.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
