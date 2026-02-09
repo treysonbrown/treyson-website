@@ -121,6 +121,44 @@ export const createProject = mutation({
   },
 });
 
+export const deleteProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    confirmName: v.string(),
+  },
+  handler: async (ctx, { projectId, confirmName }) => {
+    const userId = await requireMeUserId(ctx);
+    const membership = await requireProjectMembership(ctx.db, projectId, userId);
+    if (membership.role !== "owner") {
+      throw new Error("Only project owners can delete projects");
+    }
+
+    const project = await ctx.db.get(projectId);
+    if (!project) throw new Error("Project not found");
+    if (project.name !== confirmName.trim()) {
+      throw new Error("Confirmation name does not match project name");
+    }
+
+    const columns = await ctx.db
+      .query("columns")
+      .withIndex("by_projectId_order", (q) => q.eq("projectId", projectId))
+      .collect();
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_projectId_order", (q) => q.eq("projectId", projectId))
+      .collect();
+    const memberships = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    await Promise.all(tasks.map((task) => ctx.db.delete(task._id)));
+    await Promise.all(columns.map((column) => ctx.db.delete(column._id)));
+    await Promise.all(memberships.map((m) => ctx.db.delete(m._id)));
+    await ctx.db.delete(projectId);
+  },
+});
+
 export const getBoard = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {

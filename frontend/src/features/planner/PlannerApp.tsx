@@ -63,6 +63,10 @@ export default function PlannerApp() {
     projectId: string;
     title: string;
   }) => Promise<string>;
+  const deleteProject = useMutation("planner:deleteProject" as never) as unknown as (args: {
+    projectId: string;
+    confirmName: string;
+  }) => Promise<void>;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedProjectId = searchParams.get("project") ?? "";
@@ -73,6 +77,8 @@ export default function PlannerApp() {
   const [inviteUsername, setInviteUsername] = useState("");
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [isThemeMounted, setIsThemeMounted] = useState(false);
+  const [deleteProjectConfirmName, setDeleteProjectConfirmName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ProjectDoc | null>(null);
 
   const hasRunUpsert = useRef(false);
   useEffect(() => {
@@ -277,8 +283,28 @@ export default function PlannerApp() {
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteProject({
+        projectId: deleteTarget._id,
+        confirmName: deleteProjectConfirmName,
+      });
+      setDeleteProjectConfirmName("");
+      setDeleteTarget(null);
+      setSearchParams({}, { replace: true });
+      toast.success("Project deleted");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
   const isDark = theme === "dark";
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
+  const openDeleteProjectDialog = () => {
+    setDeleteProjectConfirmName("");
+    setDeleteTarget(selected);
+  };
 
   return (
     <div className="w-full">
@@ -483,7 +509,7 @@ export default function PlannerApp() {
                     key={p._id}
                     type="button"
                     onClick={() => setSearchParams({ project: p._id })}
-                    className={`text-left w-full border-2 rounded-none px-3 py-2 transition-colors ${isActive
+                    className={`group text-left w-full border-2 rounded-none px-3 py-2 transition-colors ${isActive
                       ? "border-[#ff5cab] bg-[#ff5cab]/15 text-black dark:text-white"
                       : "border-black/60 dark:border-white/60 bg-background dark:bg-zinc-950 hover:bg-gray-50 dark:hover:bg-zinc-800 dark:text-white"
                       }`}
@@ -540,9 +566,55 @@ export default function PlannerApp() {
       )}
 
       <section className="min-w-0">
-        <ProjectBoard projectId={selected._id} showProjectActions={false} />
+        <ProjectBoard
+          projectId={selected._id}
+          showProjectActions={false}
+          canDeleteProject={selected.role === "owner"}
+          onDeleteProject={openDeleteProjectDialog}
+        />
       </section>
       </div>
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteProjectConfirmName("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tight">Delete project</DialogTitle>
+            <DialogDescription className="font-mono">
+              This permanently deletes tasks, columns, and members. Type{" "}
+              <span className="font-bold text-black dark:text-white">{deleteTarget?.name ?? ""}</span> to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={deleteProjectConfirmName}
+              onChange={(e) => setDeleteProjectConfirmName(e.target.value)}
+              placeholder={deleteTarget?.name ?? ""}
+              className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && deleteTarget && deleteProjectConfirmName.trim() === deleteTarget.name) {
+                  handleDeleteProject();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              onClick={handleDeleteProject}
+              disabled={!deleteTarget || deleteProjectConfirmName.trim() !== deleteTarget.name}
+              className="w-full rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 dark:hover:bg-red-950/30 font-mono font-bold uppercase tracking-wider text-red-600 dark:text-red-400"
+            >
+              Confirm Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

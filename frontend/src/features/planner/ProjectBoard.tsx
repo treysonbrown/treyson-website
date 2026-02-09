@@ -1,6 +1,6 @@
 import { DragEvent, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Plus, Users, Columns2, GripVertical } from "lucide-react";
+import { Plus, Users, Columns2, GripVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -72,9 +72,13 @@ const ACCENT_UTILITY_BUTTON_CLASS =
 export default function ProjectBoard({
   projectId,
   showProjectActions = true,
+  canDeleteProject = false,
+  onDeleteProject,
 }: {
   projectId: string;
   showProjectActions?: boolean;
+  canDeleteProject?: boolean;
+  onDeleteProject?: () => void;
 }) {
   const board = useQuery("planner:getBoard" as never, { projectId } as never) as
     | undefined
@@ -370,6 +374,18 @@ export default function ProjectBoard({
                 ) : null}
               </div>
             </div>
+
+            {canDeleteProject ? (
+              <button
+                type="button"
+                onClick={onDeleteProject}
+                className="h-9 w-9 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 flex items-center justify-center"
+                aria-label="Delete project"
+                title="Delete project"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : null}
 
             {showProjectActions ? (
               <>
