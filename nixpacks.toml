@@ -5,10 +5,10 @@ NIXPACKS_NO_CACHE = "1"
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["pnpm install --frozen-lockfile --prefer-offline"]
+cmds = ["corepack enable && pnpm install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["pnpm run build"]
+cmds = ["NODE_ENV=production pnpm run build"]
 
 [start]
 cmd = "pnpm run start"
