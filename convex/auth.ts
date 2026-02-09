@@ -7,11 +7,15 @@ const parseCsv = (value: string | undefined) =>
     .filter(Boolean);
 
 export const isAdmin = queryGeneric(async ({ auth }) => {
-  const identity = await auth.getUserIdentity();
-  if (!identity) return false;
-
   const adminUserIds = parseCsv(process.env.ADMIN_CLERK_USER_IDS);
   if (!adminUserIds.length) return false;
 
-  return adminUserIds.includes(identity.subject);
+  try {
+    const identity = await auth.getUserIdentity();
+    if (!identity) return false;
+    return adminUserIds.includes(identity.subject);
+  } catch (error) {
+    console.error("auth:isAdmin failed to resolve user identity", error);
+    return false;
+  }
 });

@@ -11,9 +11,11 @@ export default defineConfig(({ command, mode }) => ({
     allowedHosts: ["treyson.org"]
   },
   plugins: [
-    // Explicitly control JSX runtime: only use dev JSX when running the dev server.
-    // This prevents _jsxDEV errors if the build mode is overridden by the deployment platform.
-    react({ development: command === "serve" }),
+    // Force SWC (not esbuild) for JSX in production builds by providing an
+    // empty plugins array. Without this, the plugin delegates JSX to esbuild,
+    // and Vite sets esbuild.jsxDev based on mode — which Railway overrides to
+    // "development", causing _jsxDEV calls in the bundle.
+    react({ plugins: [] }),
     mode === "development" && process.env.LOVABLE_DEV_SERVER === "true" && componentTagger(),
   ].filter(Boolean),
   resolve: {
