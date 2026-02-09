@@ -1,6 +1,7 @@
-import thesisImage from "@/assets/Thesis.png";
+import thesisImage from "@/assets/thesis.png";
 import pharmaEduImage from "@/assets/pharma-edu.png";
 import statsImage from "@/assets/stats.png";
+import projectPlanner from "@/assets/project_planner.png"
 
 export interface Project {
   slug: string;
@@ -38,16 +39,16 @@ export const projects: Project[] = [
     image: statsImage,
   },
   {
-    slug: "pharma-edu",
-    title: "Pharma EDU",
+    slug: "planner",
+    title: "Project Planner",
     shortDescription:
-      "Educational platform for pharmacy students. Features interactive quizzes, progress tracking, and material distribution.",
+      "A project planner",
     longDescription:
-      "Pharma EDU is a learning platform for pharmacy students, built to help instructors deliver material, track student progress, and run interactive assessments. It focuses on clarity and reliability rather than flashy UI, making it easy to deploy in academic settings.",
-    tech: ["React", "FastAPI", "PostgreSQL", "Alembic"],
-    liveUrl: "https://pharmacy.projectgnome.org/login",
-    status: "LIVE",
-    image: pharmaEduImage,
+      "",
+    tech: ["React", "Convex"],
+    liveUrl: "https://treyson.org/planner",
+    status: "PRODUCTION",
+    image: projectPlanner,
   },
 ];
 

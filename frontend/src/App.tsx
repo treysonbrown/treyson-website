@@ -11,31 +11,29 @@ import Stats from "./pages/Stats";
 import Auth from "./pages/Auth";
 import ProjectDetail from "./pages/ProjectDetail";
 import Boulders from "./pages/Boulders";
-import { AuthProvider } from "@/providers/AuthProvider";
+import Planner from "./pages/Planner";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <AuthProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:id" element={<BlogPost />} />
-            <Route path="/projects/:slug" element={<ProjectDetail />} />
-            <Route path="/boulders" element={<Boulders />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AuthProvider>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/boulders" element={<Boulders />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 export default App;
