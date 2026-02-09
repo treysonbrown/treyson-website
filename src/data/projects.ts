@@ -23,7 +23,7 @@ export const projects: Project[] = [
       "Grant financial management for PIs. Replacing complex spreadsheets with intuitive software to track burn rates and compliance.",
     longDescription:
       "Thesis ERP is a focused tool for Principal Investigators to track post-award grant finances without wrestling spreadsheets. It brings together burn rate tracking, upcoming deadlines, and compliance tasks into a single, opinionated workflow that fits how researchers actually work.",
-    tech: ["React", "FastAPI", "PostgreSQL", "SQLModel"],
+    tech: ["React", "Convex"],
     liveUrl: "https://thesiserp.com",
     status: "PRODUCTION",
     image: thesisImage,
@@ -42,7 +42,7 @@ export const projects: Project[] = [
     slug: "planner",
     title: "Project Planner",
     shortDescription:
-      "A project planner",
+      "A real-time, collaborative project management app with a Kanban-style board for organizing tasks across customizable columns.",
     longDescription:
       "",
     tech: ["React", "Convex"],
