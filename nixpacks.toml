@@ -5,10 +5,12 @@ NIXPACKS_NO_CACHE = "1"
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["corepack enable && pnpm install --frozen-lockfile"]
+# Use npm (ships with Node.js) so no corepack/pnpm setup is needed.
+# --include=dev ensures vite + build tooling are installed even if NODE_ENV=production.
+cmds = ["npm ci --include=dev"]
 
 [phases.build]
-cmds = ["NODE_ENV=production pnpm run build"]
+cmds = ["NODE_ENV=production npm run build"]
 
 [start]
-cmd = "pnpm run start"
+cmd = "npm run start"
