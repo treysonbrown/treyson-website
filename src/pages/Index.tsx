@@ -2,7 +2,6 @@ import { MouseEvent, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Github, Linkedin, ExternalLink, Terminal, ArrowRight, Code2, Cpu } from "lucide-react";
-import { useQuery } from "convex/react";
 import Navbar from "@/components/Navbar";
 import LifeControlBar from "@/components/LifeControlBar";
 import HeroLifeGrid from "@/components/HeroLifeGrid";
@@ -14,7 +13,7 @@ const ACCENT_COLOR = "#ff4499";
 const CELL_SIZE = 40; // Must match HeroLifeGrid cell size
 
 const Index = () => {
-  const isAdmin = useQuery("auth:isAdmin" as any) as boolean | undefined;
+  const isAdmin = false;
   const location = useLocation();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
