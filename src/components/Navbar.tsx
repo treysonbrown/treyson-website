@@ -36,7 +36,7 @@ const Navbar = ({
     showHomeLink ? { label: "Home", to: "/" } : null,
     { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
     { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
-    isSignedIn ? { label: "Planner", to: "/planner" } : null,
+    isSignedIn ? { label: "Planner", to: "/plan" } : null,
     { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
   ].filter((item): item is NavItem => Boolean(item));
 

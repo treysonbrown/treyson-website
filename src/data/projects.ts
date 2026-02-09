@@ -46,7 +46,7 @@ export const projects: Project[] = [
     longDescription:
       "",
     tech: ["React", "Convex"],
-    liveUrl: "https://treyson.org/planner",
+    liveUrl: "https://treyson.org/plan",
     status: "PRODUCTION",
     image: projectPlanner,
   },

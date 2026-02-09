@@ -40,7 +40,7 @@ const Auth = () => {
   const redirectTo = useMemo(() => {
     const value = searchParams.get("redirect");
     if (!value || !value.startsWith("/") || value.startsWith("//")) {
-      return "/planner";
+      return "/plan";
     }
     return value;
   }, [searchParams]);
@@ -82,9 +82,6 @@ const Auth = () => {
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter dark:text-white">
                 Sign In
               </h1>
-              <p className="font-mono text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed">
-                Public visitors can view all stats without signing in. Login is restricted to the site owner for data entry.
-              </p>
             </div>
 
             <div className="space-y-6">

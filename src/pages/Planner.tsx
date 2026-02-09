@@ -44,7 +44,7 @@ const Planner = () => {
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/auth?redirect=%2Fplanner" replace />;
+    return <Navigate to="/auth?redirect=%2Fplan" replace />;
   }
 
   return (
