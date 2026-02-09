@@ -191,6 +191,47 @@ export const createColumn = mutation({
   },
 });
 
+export const reorderColumns = mutation({
+  args: {
+    projectId: v.id("projects"),
+    orderedColumnIds: v.array(v.id("columns")),
+  },
+  handler: async (ctx, { projectId, orderedColumnIds }) => {
+    const userId = await requireMeUserId(ctx);
+    await requireProjectMembership(ctx.db, projectId, userId);
+
+    const existing = await ctx.db
+      .query("columns")
+      .withIndex("by_projectId_order", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    if (existing.length !== orderedColumnIds.length) {
+      throw new Error("Invalid column order payload");
+    }
+
+    const existingIds = new Set(existing.map((c) => c._id));
+    const incomingIds = new Set(orderedColumnIds);
+    if (existingIds.size !== incomingIds.size) {
+      throw new Error("Invalid column order payload");
+    }
+    for (const id of existingIds) {
+      if (!incomingIds.has(id)) {
+        throw new Error("Invalid column order payload");
+      }
+    }
+
+    const now = Date.now();
+    await Promise.all(
+      orderedColumnIds.map((columnId, index) =>
+        ctx.db.patch(columnId, {
+          order: (index + 1) * ORDER_STEP,
+          updatedAt: now,
+        }),
+      ),
+    );
+  },
+});
+
 export const createTask = mutation({
   args: { projectId: v.id("projects"), columnId: v.id("columns"), title: v.string() },
   handler: async (ctx, { projectId, columnId, title }) => {

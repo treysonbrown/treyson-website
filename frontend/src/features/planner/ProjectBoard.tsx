@@ -1,4 +1,4 @@
-import { DragEvent, useMemo, useState } from "react";
+import { DragEvent, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, Users, Columns2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
@@ -96,6 +96,10 @@ export default function ProjectBoard({
     columnId: string;
     title: string;
   }) => Promise<string>;
+  const reorderColumns = useMutation("planner:reorderColumns" as never) as unknown as (args: {
+    projectId: string;
+    orderedColumnIds: string[];
+  }) => Promise<void>;
 
   const moveTaskToColumn = useMutation("planner:moveTaskToColumn" as never) as unknown as (args: {
     taskId: string;
@@ -125,13 +129,16 @@ export default function ProjectBoard({
   }) => Promise<void>;
 
   const [newColumnTitle, setNewColumnTitle] = useState("");
-  const [newTaskTitles, setNewTaskTitles] = useState<Record<string, string>>({});
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskColumnId, setNewTaskColumnId] = useState<string | null>(null);
   const [inviteUsername, setInviteUsername] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
   const [editingDueDate, setEditingDueDate] = useState("");
   const [editingPriority, setEditingPriority] = useState<"low" | "medium" | "high">("medium");
+  const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
+  const columnRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const membersById = useMemo(() => {
     const map = new Map<string, Member>();
@@ -170,12 +177,13 @@ export default function ProjectBoard({
     }
   };
 
-  const handleCreateTask = async (columnId: string) => {
-    const title = (newTaskTitles[columnId] ?? "").trim();
+  const handleCreateTask = async (columnId: string, titleInput?: string) => {
+    const title = (titleInput ?? newTaskTitle).trim();
     if (!title) return;
     try {
       await createTask({ projectId, columnId, title });
-      setNewTaskTitles((prev) => ({ ...prev, [columnId]: "" }));
+      setNewTaskTitle("");
+      setNewTaskColumnId(null);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
     }
@@ -183,6 +191,31 @@ export default function ProjectBoard({
 
   const handleDropOnColumn = async (event: DragEvent, toColumnId: string) => {
     event.preventDefault();
+    const draggedColumnId = event.dataTransfer.getData("application/x-column-id");
+    if (draggedColumnId) {
+      if (draggedColumnId === toColumnId) {
+        setDraggingColumnId(null);
+        return;
+      }
+      try {
+        const nextOrder = [...board.columns];
+        const fromIndex = nextOrder.findIndex((c) => c._id === draggedColumnId);
+        const toIndex = nextOrder.findIndex((c) => c._id === toColumnId);
+        if (fromIndex < 0 || toIndex < 0) return;
+        const [moved] = nextOrder.splice(fromIndex, 1);
+        nextOrder.splice(toIndex, 0, moved);
+        await reorderColumns({
+          projectId,
+          orderedColumnIds: nextOrder.map((c) => c._id),
+        });
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err));
+      } finally {
+        setDraggingColumnId(null);
+      }
+      return;
+    }
+
     const taskId = event.dataTransfer.getData("text/plain");
     if (!taskId) return;
 
@@ -278,6 +311,11 @@ export default function ProjectBoard({
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
     }
+  };
+
+  const openCreateTaskModal = (columnId: string) => {
+    setNewTaskColumnId(columnId);
+    setNewTaskTitle("");
   };
 
   if (board === undefined) {
@@ -426,15 +464,40 @@ export default function ProjectBoard({
             return (
               <div
                 key={col._id}
-                className="w-[320px] shrink-0 border-4 border-black dark:border-white bg-card dark:bg-zinc-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
+                ref={(el) => {
+                  columnRefs.current[col._id] = el;
+                }}
+                className={`w-[320px] shrink-0 border-4 border-black dark:border-white bg-card dark:bg-zinc-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-opacity ${
+                  draggingColumnId === col._id ? "ring-2 ring-[#ff5cab] opacity-60" : ""
+                }`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDropOnColumn(e, col._id)}
               >
                 <div className="border-b-4 border-black dark:border-white bg-background dark:bg-zinc-950 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-black uppercase tracking-tight dark:text-white truncate">
-                      {col.title}
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("application/x-column-id", col._id);
+                          e.dataTransfer.effectAllowed = "move";
+                          const columnEl = columnRefs.current[col._id];
+                          if (columnEl) {
+                            e.dataTransfer.setDragImage(columnEl, 24, 24);
+                          }
+                          setDraggingColumnId(col._id);
+                        }}
+                        onDragEnd={() => setDraggingColumnId(null)}
+                        className="shrink-0 border-2 border-black dark:border-white bg-card dark:bg-zinc-900 p-1 cursor-grab active:cursor-grabbing"
+                        title="Drag to reorder column"
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+                      <h3 className="font-black uppercase tracking-tight dark:text-white truncate">
+                        {col.title}
+                      </h3>
+                    </div>
                     <Badge
                       variant="outline"
                       className="rounded-none border-2 border-black dark:border-white font-mono text-[10px] uppercase tracking-widest"
@@ -482,7 +545,7 @@ export default function ProjectBoard({
                               </PopoverTrigger>
                               <PopoverContent
                                 align="end"
-                                className="w-64 rounded-none border-2 border-black dark:border-white"
+                                className="w-64 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-900"
                               >
                                 <div className="space-y-2">
                                   <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
@@ -494,7 +557,7 @@ export default function ProjectBoard({
                                       return (
                                         <label
                                           key={m._id}
-                                          className="flex items-center gap-2 border-2 border-black/10 dark:border-white/10 p-2 cursor-pointer"
+                                          className="flex items-center gap-2 border-2 border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-2 cursor-pointer"
                                         >
                                           <Checkbox
                                             checked={checked}
@@ -553,27 +616,14 @@ export default function ProjectBoard({
                   })}
 
                   <div className="pt-1">
-                    <div className="grid gap-2">
-                      <Input
-                        value={newTaskTitles[col._id] ?? ""}
-                        onChange={(e) =>
-                          setNewTaskTitles((prev) => ({ ...prev, [col._id]: e.target.value }))
-                        }
-                        placeholder="New task..."
-                        className="rounded-none border-2 border-black dark:border-white font-mono"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleCreateTask(col._id);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => handleCreateTask(col._id)}
-                        className={`rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Task
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => openCreateTaskModal(col._id)}
+                      className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Task
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -582,8 +632,49 @@ export default function ProjectBoard({
         </div>
       </div>
 
+      <Dialog
+        open={Boolean(newTaskColumnId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setNewTaskColumnId(null);
+            setNewTaskTitle("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tight">Create task</DialogTitle>
+            <DialogDescription className="font-mono">
+              Enter a task title for this column.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              placeholder="Task name"
+              className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newTaskColumnId) {
+                  handleCreateTask(newTaskColumnId, newTaskTitle);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              onClick={() => {
+                if (newTaskColumnId) handleCreateTask(newTaskColumnId, newTaskTitle);
+              }}
+              className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(editingTask)} onOpenChange={(open) => !open && closeTaskEditor()}>
-        <DialogContent className="rounded-none border-2 border-black dark:border-white">
+        <DialogContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
           <DialogHeader>
             <DialogTitle className="font-black uppercase tracking-tight">Task details</DialogTitle>
             <DialogDescription className="font-mono">
@@ -596,25 +687,25 @@ export default function ProjectBoard({
                 value={editingTitle}
                 onChange={(e) => setEditingTitle(e.target.value)}
                 placeholder="Task title"
-                className="rounded-none border-2 border-black dark:border-white font-mono"
+                className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
               />
               <Textarea
                 value={editingDescription}
                 onChange={(e) => setEditingDescription(e.target.value)}
                 placeholder="Description / notes"
-                className="rounded-none border-2 border-black dark:border-white font-mono min-h-24"
+                className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono min-h-24"
               />
               <div className="grid gap-3 md:grid-cols-2">
                 <Input
                   type="date"
                   value={editingDueDate}
                   onChange={(e) => setEditingDueDate(e.target.value)}
-                  className="rounded-none border-2 border-black dark:border-white font-mono"
+                  className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
                 />
                 <select
                   value={editingPriority}
                   onChange={(e) => setEditingPriority(e.target.value as "low" | "medium" | "high")}
-                  className="h-10 rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 px-3 font-mono text-sm"
+                  className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm"
                 >
                   <option value="low">low priority</option>
                   <option value="medium">medium priority</option>
@@ -633,7 +724,7 @@ export default function ProjectBoard({
                   type="button"
                   variant="outline"
                   onClick={handleDeleteTask}
-                  className="rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider text-red-600 dark:text-red-400"
+                  className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 hover:bg-red-50 dark:hover:bg-red-950/30 font-mono font-bold uppercase tracking-wider text-red-600 dark:text-red-400"
                 >
                   Delete Task
                 </Button>

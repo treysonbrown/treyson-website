@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
-import { ArrowLeft, Columns2, PanelLeft, Plus, Settings, Users } from "lucide-react";
+import { ArrowLeft, Columns2, Moon, PanelLeft, Plus, Settings, Sun, Users } from "lucide-react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const ACCENT_UTILITY_BUTTON_CLASS =
 
 export default function PlannerApp() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const { isLoaded, isSignedIn } = useAuth();
   const me = useQuery("users:me" as never) as
     | null
@@ -70,6 +72,7 @@ export default function PlannerApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [inviteUsername, setInviteUsername] = useState("");
   const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [isThemeMounted, setIsThemeMounted] = useState(false);
 
   const hasRunUpsert = useRef(false);
   useEffect(() => {
@@ -98,6 +101,10 @@ export default function PlannerApp() {
     if (!me) return;
     setNewUsername(me.username);
   }, [me]);
+
+  useEffect(() => {
+    setIsThemeMounted(true);
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -181,7 +188,7 @@ export default function PlannerApp() {
                   Username
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+              <DialogContent className="rounded-none border-2 border-black dark:border-white bg-card dark:bg-zinc-900">
                 <DialogHeader>
                   <DialogTitle className="font-black uppercase tracking-tight">Set username</DialogTitle>
                   <DialogDescription className="font-mono">
@@ -193,7 +200,7 @@ export default function PlannerApp() {
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="e.g. treyson"
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    className="rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 font-mono"
                   />
                   <Button
                     type="button"
@@ -270,6 +277,9 @@ export default function PlannerApp() {
     }
   };
 
+  const isDark = theme === "dark";
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
+
   return (
     <div className="w-full">
       <div
@@ -307,7 +317,7 @@ export default function PlannerApp() {
                   <Settings className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+              <DialogContent className="rounded-none border-2 border-black dark:border-white bg-card dark:bg-zinc-900">
                 <DialogHeader>
                   <DialogTitle className="font-black uppercase tracking-tight">Set username</DialogTitle>
                   <DialogDescription className="font-mono">
@@ -319,7 +329,7 @@ export default function PlannerApp() {
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="e.g. treyson"
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    className="rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 font-mono"
                   />
                   <Button
                     type="button"
@@ -355,7 +365,7 @@ export default function PlannerApp() {
                   Invite
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+              <DialogContent className="rounded-none border-2 border-black dark:border-white bg-card dark:bg-zinc-900">
                 <DialogHeader>
                   <DialogTitle className="font-black uppercase tracking-tight">Invite by username</DialogTitle>
                   <DialogDescription className="font-mono">
@@ -367,7 +377,7 @@ export default function PlannerApp() {
                     value={inviteUsername}
                     onChange={(e) => setInviteUsername(e.target.value)}
                     placeholder="username"
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    className="rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 font-mono"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleInvite();
                     }}
@@ -393,7 +403,7 @@ export default function PlannerApp() {
                   Column
                 </Button>
               </DialogTrigger>
-              <DialogContent className="rounded-none border-2 border-black dark:border-white">
+              <DialogContent className="rounded-none border-2 border-black dark:border-white bg-card dark:bg-zinc-900">
                 <DialogHeader>
                   <DialogTitle className="font-black uppercase tracking-tight">Create column</DialogTitle>
                   <DialogDescription className="font-mono">
@@ -405,7 +415,7 @@ export default function PlannerApp() {
                     value={newColumnTitle}
                     onChange={(e) => setNewColumnTitle(e.target.value)}
                     placeholder='e.g. "In Progress"'
-                    className="rounded-none border-2 border-black dark:border-white font-mono"
+                    className="rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 font-mono"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleCreateColumn();
                     }}
@@ -436,7 +446,7 @@ export default function PlannerApp() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-none border-2 border-black dark:border-white">
+                <DialogContent className="rounded-none border-2 border-black dark:border-white bg-card dark:bg-zinc-900">
                   <DialogHeader>
                     <DialogTitle className="font-black uppercase tracking-tight">Create project</DialogTitle>
                     <DialogDescription className="font-mono">
@@ -448,7 +458,7 @@ export default function PlannerApp() {
                       value={newProjectName}
                       onChange={(e) => setNewProjectName(e.target.value)}
                       placeholder="Project name"
-                      className="rounded-none border-2 border-black dark:border-white font-mono"
+                      className="rounded-none border-2 border-black dark:border-white bg-background dark:bg-zinc-950 font-mono"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleCreateProject();
                       }}
@@ -498,6 +508,19 @@ export default function PlannerApp() {
               Use the project header to invite teammates by username.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`w-full flex items-center justify-center gap-2 h-11 border-2 border-black dark:border-white ${ACCENT_UTILITY_BUTTON_CLASS} font-mono font-bold uppercase tracking-wider`}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {isThemeMounted ? (
+              isDark ? <Sun size={16} style={{ color: "#ff4499" }} /> : <Moon size={16} style={{ color: "#ff4499" }} />
+            ) : null}
+            Theme
+          </button>
         </div>
       </aside>
       ) : (
