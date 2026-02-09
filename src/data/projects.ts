@@ -1,4 +1,4 @@
-import thesisImage from "@/assets/Thesis.png";
+import thesisImage from "@/assets/thesis.png";
 import pharmaEduImage from "@/assets/pharma-edu.png";
 import statsImage from "@/assets/stats.png";
 import projectPlanner from "@/assets/project_planner.png"
