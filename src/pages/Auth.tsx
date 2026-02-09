@@ -40,7 +40,7 @@ const Auth = () => {
   const redirectTo = useMemo(() => {
     const value = searchParams.get("redirect");
     if (!value || !value.startsWith("/") || value.startsWith("//")) {
-      return "/stats";
+      return "/planner";
     }
     return value;
   }, [searchParams]);
@@ -104,12 +104,12 @@ const Auth = () => {
                   <div className="grid gap-4">
                     <Button
                       type="button"
-                      onClick={() => navigate("/stats")}
+                      onClick={() => navigate(redirectTo)}
                       className="h-14 w-full bg-black dark:bg-white text-white dark:text-black hover:bg-[color:var(--accent)] dark:hover:bg-[color:var(--accent)] hover:text-white dark:hover:text-white rounded-none border-2 border-black dark:border-white font-bold uppercase tracking-widest text-lg shadow-[4px_4px_0px_0px_rgba(100,100,100,0.5)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.5)] active:translate-y-1 active:shadow-none transition-all"
                       style={{ '--accent': ACCENT_COLOR } as React.CSSProperties}
                     >
                       <Terminal className="mr-2 h-5 w-5" />
-                      Access Dashboard
+                      Continue
                     </Button>
 
                     <div className="h-12 w-full bg-card dark:bg-zinc-900 text-black dark:text-white rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2">

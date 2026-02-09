@@ -1,8 +1,35 @@
+import { Component, ReactNode } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { Navigate } from "react-router-dom";
 import PlannerApp from "@/features/planner/PlannerApp";
 
 const ACCENT_COLOR = "#ff4499";
+
+class PlannerErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; errorMessage: string }
+> {
+  state = { hasError: false, errorMessage: "" };
+
+  static getDerivedStateFromError(error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { hasError: true, errorMessage: message };
+  }
+
+  render() {
+    if (!this.state.hasError) {
+      return this.props.children;
+    }
+
+    return (
+      <div className="border-2 border-black dark:border-white bg-card dark:bg-zinc-900 p-6 font-mono text-sm dark:text-gray-300">
+        <p className="font-bold uppercase mb-2 text-black dark:text-white">Planner unavailable</p>
+        <p className="mb-2">A backend auth/query error occurred while loading this page.</p>
+        <p className="text-xs opacity-80 break-words">{this.state.errorMessage}</p>
+      </div>
+    );
+  }
+}
 
 const Planner = () => {
   const { isLoaded, isSignedIn } = useAuth();
@@ -32,7 +59,9 @@ const Planner = () => {
       <main className="relative z-10 min-h-screen px-3 md:px-6 pt-6 pb-6">
         <div className="w-full max-w-none space-y-4">
           <div className="w-full min-h-[calc(100vh-3rem)]">
-            <PlannerApp />
+            <PlannerErrorBoundary>
+              <PlannerApp />
+            </PlannerErrorBoundary>
           </div>
         </div>
       </main>
