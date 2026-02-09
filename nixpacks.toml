@@ -2,13 +2,13 @@
 NIXPACKS_NO_CACHE = "1"
 
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["cd frontend && npm ci"]
+cmds = ["pnpm install --frozen-lockfile --prefer-offline"]
 
 [phases.build]
-cmds = ["cd frontend && npm run build"]
+cmds = ["pnpm run build"]
 
 [start]
-cmd = "cd frontend && npm run start"
+cmd = "pnpm run start"
