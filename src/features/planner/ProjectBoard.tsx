@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,7 @@ export default function ProjectBoard({
     description?: string;
     dueDate?: number | null;
     priority?: "low" | "medium" | "high";
+    assigneeIds?: string[];
   }) => Promise<string>;
   const reorderColumns = useMutation("planner:reorderColumns" as never) as unknown as (args: {
     projectId: string;
@@ -140,6 +142,7 @@ export default function ProjectBoard({
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<"low" | "medium" | "high">("medium");
+  const [newTaskAssigneeIds, setNewTaskAssigneeIds] = useState<string[]>([]);
   const [newTaskColumnId, setNewTaskColumnId] = useState<string | null>(null);
   const [inviteUsername, setInviteUsername] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -147,6 +150,7 @@ export default function ProjectBoard({
   const [editingDescription, setEditingDescription] = useState("");
   const [editingDueDate, setEditingDueDate] = useState("");
   const [editingPriority, setEditingPriority] = useState<"low" | "medium" | "high">("medium");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
   const columnRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -172,6 +176,14 @@ export default function ProjectBoard({
     return by;
   }, [board?.tasks]);
 
+  const matchesAssigneeFilter = (task: TaskDoc) => {
+    if (assigneeFilter === "all") return true;
+    if (assigneeFilter === "unassigned") return (task.assigneeIds ?? []).length === 0;
+    if (!assigneeFilter.startsWith("user:")) return true;
+    const userId = assigneeFilter.slice(5);
+    return (task.assigneeIds ?? []).includes(userId);
+  };
+
   const handleCreateColumn = async () => {
     const title = newColumnTitle.trim();
     if (!title) {
@@ -196,18 +208,30 @@ export default function ProjectBoard({
     const normalizedDescription = newTaskDescription.trim();
     const dueDateTimestamp = newTaskDueDate ? new Date(`${newTaskDueDate}T12:00:00`).getTime() : null;
     try {
-      await createTask({
+      const taskId = await createTask({
         projectId,
         columnId,
         title,
-        description: normalizedDescription || undefined,
-        dueDate: dueDateTimestamp,
-        priority: newTaskPriority,
       });
+      if (normalizedDescription || dueDateTimestamp !== null || newTaskPriority !== "medium") {
+        await updateTask({
+          taskId,
+          description: normalizedDescription || "",
+          dueDate: dueDateTimestamp,
+          priority: newTaskPriority,
+        });
+      }
+      if (newTaskAssigneeIds.length > 0) {
+        await setTaskAssignees({
+          taskId,
+          assigneeIds: newTaskAssigneeIds,
+        });
+      }
       setNewTaskTitle("");
       setNewTaskDescription("");
       setNewTaskDueDate("");
       setNewTaskPriority("medium");
+      setNewTaskAssigneeIds([]);
       setNewTaskColumnId(null);
       toast.success("Task created");
     } catch (err: unknown) {
@@ -345,6 +369,14 @@ export default function ProjectBoard({
     setNewTaskDescription("");
     setNewTaskDueDate("");
     setNewTaskPriority("medium");
+    setNewTaskAssigneeIds([]);
+  };
+
+  const toggleNewTaskAssignee = (userId: string) => {
+    setNewTaskAssigneeIds((current) => {
+      if (current.includes(userId)) return current.filter((id) => id !== userId);
+      return [...current, userId];
+    });
   };
 
   if (board === undefined) {
@@ -377,6 +409,43 @@ export default function ProjectBoard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-2 h-9">
+              <label
+                htmlFor="assignee-filter"
+                className="font-mono text-[10px] uppercase tracking-widest text-gray-600 dark:text-gray-300"
+              >
+                Assignee
+              </label>
+              <Select
+                value={assigneeFilter}
+                onValueChange={setAssigneeFilter}
+              >
+                <SelectTrigger
+                  id="assignee-filter"
+                  className="h-7 w-[150px] rounded-none border-0 bg-transparent px-1 font-mono text-xs focus:ring-0 focus:ring-offset-0 dark:bg-transparent"
+                >
+                  <SelectValue placeholder="All tasks" />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950">
+                  <SelectItem className="font-mono text-xs uppercase tracking-wider" value="all">
+                    All tasks
+                  </SelectItem>
+                  <SelectItem className="font-mono text-xs uppercase tracking-wider" value="unassigned">
+                    Unassigned
+                  </SelectItem>
+                  {board.members.map((m) => (
+                    <SelectItem
+                      key={m._id}
+                      className="font-mono text-xs uppercase tracking-wider"
+                      value={`user:${m._id}`}
+                    >
+                      @{m.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <div className="flex flex-wrap gap-1">
@@ -501,7 +570,8 @@ export default function ProjectBoard({
       <div className="overflow-x-auto">
         <div className="flex gap-4 min-w-max pb-2">
           {board.columns.map((col) => {
-            const tasks = tasksByColumnId.get(col._id) ?? [];
+            const allColumnTasks = tasksByColumnId.get(col._id) ?? [];
+            const tasks = allColumnTasks.filter(matchesAssigneeFilter);
             return (
               <div
                 key={col._id}
@@ -682,6 +752,7 @@ export default function ProjectBoard({
             setNewTaskDescription("");
             setNewTaskDueDate("");
             setNewTaskPriority("medium");
+            setNewTaskAssigneeIds([]);
           }
         }}
       >
@@ -717,15 +788,47 @@ export default function ProjectBoard({
                 onChange={(e) => setNewTaskDueDate(e.target.value)}
                 className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
               />
-              <select
+              <Select
                 value={newTaskPriority}
-                onChange={(e) => setNewTaskPriority(e.target.value as "low" | "medium" | "high")}
-                className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm"
+                onValueChange={(value) => setNewTaskPriority(value as "low" | "medium" | "high")}
               >
-                <option value="low">low priority</option>
-                <option value="medium">medium priority</option>
-                <option value="high">high priority</option>
-              </select>
+                <SelectTrigger className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm focus:ring-0 focus:ring-offset-0">
+                  <SelectValue placeholder="medium priority" />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950">
+                  <SelectItem className="font-mono text-sm uppercase tracking-wider" value="low">
+                    low priority
+                  </SelectItem>
+                  <SelectItem className="font-mono text-sm uppercase tracking-wider" value="medium">
+                    medium priority
+                  </SelectItem>
+                  <SelectItem className="font-mono text-sm uppercase tracking-wider" value="high">
+                    high priority
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                Assignees
+              </p>
+              <div className="grid gap-2 max-h-40 overflow-y-auto pr-1">
+                {board.members.map((m) => {
+                  const checked = newTaskAssigneeIds.includes(m._id);
+                  return (
+                    <label
+                      key={m._id}
+                      className="flex items-center gap-2 border-2 border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 p-2 cursor-pointer"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => toggleNewTaskAssignee(m._id)} />
+                      <span className="font-mono text-xs">@{m.username}</span>
+                      <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        {m.role}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             <Button
               type="button"
@@ -769,15 +872,25 @@ export default function ProjectBoard({
                   onChange={(e) => setEditingDueDate(e.target.value)}
                   className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
                 />
-                <select
+                <Select
                   value={editingPriority}
-                  onChange={(e) => setEditingPriority(e.target.value as "low" | "medium" | "high")}
-                  className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm"
+                  onValueChange={(value) => setEditingPriority(value as "low" | "medium" | "high")}
                 >
-                  <option value="low">low priority</option>
-                  <option value="medium">medium priority</option>
-                  <option value="high">high priority</option>
-                </select>
+                  <SelectTrigger className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm focus:ring-0 focus:ring-offset-0">
+                    <SelectValue placeholder="medium priority" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950">
+                    <SelectItem className="font-mono text-sm uppercase tracking-wider" value="low">
+                      low priority
+                    </SelectItem>
+                    <SelectItem className="font-mono text-sm uppercase tracking-wider" value="medium">
+                      medium priority
+                    </SelectItem>
+                    <SelectItem className="font-mono text-sm uppercase tracking-wider" value="high">
+                      high priority
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
                 <Button

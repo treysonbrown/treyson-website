@@ -278,8 +278,9 @@ export const createTask = mutation({
     description: v.optional(v.string()),
     dueDate: v.optional(v.union(v.number(), v.null())),
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    assigneeIds: v.optional(v.array(v.id("users"))),
   },
-  handler: async (ctx, { projectId, columnId, title, description, dueDate, priority }) => {
+  handler: async (ctx, { projectId, columnId, title, description, dueDate, priority, assigneeIds }) => {
     const userId = await requireMeUserId(ctx);
     await requireProjectMembership(ctx.db, projectId, userId);
 
@@ -291,6 +292,15 @@ export const createTask = mutation({
     const now = Date.now();
     const order = await getNextOrderForColumn(ctx.db, columnId);
     const normalizedDescription = description?.trim() ?? "";
+    const uniqueAssigneeIds = Array.from(new Set(assigneeIds ?? []));
+    for (const uid of uniqueAssigneeIds) {
+      const membership = await ctx.db
+        .query("projectMembers")
+        .withIndex("by_projectId_userId", (q) => q.eq("projectId", projectId).eq("userId", uid))
+        .unique();
+      if (!membership) throw new Error("Assignee is not a project member");
+    }
+
     return await ctx.db.insert("tasks", {
       projectId,
       columnId,
@@ -299,7 +309,7 @@ export const createTask = mutation({
       dueDate: dueDate ?? undefined,
       priority: priority ?? "medium",
       order,
-      assigneeIds: [],
+      assigneeIds: uniqueAssigneeIds,
       createdByUserId: userId,
       createdAt: now,
       updatedAt: now,
