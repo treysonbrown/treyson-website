@@ -271,8 +271,15 @@ export const reorderColumns = mutation({
 });
 
 export const createTask = mutation({
-  args: { projectId: v.id("projects"), columnId: v.id("columns"), title: v.string() },
-  handler: async (ctx, { projectId, columnId, title }) => {
+  args: {
+    projectId: v.id("projects"),
+    columnId: v.id("columns"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    dueDate: v.optional(v.union(v.number(), v.null())),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+  },
+  handler: async (ctx, { projectId, columnId, title, description, dueDate, priority }) => {
     const userId = await requireMeUserId(ctx);
     await requireProjectMembership(ctx.db, projectId, userId);
 
@@ -283,13 +290,14 @@ export const createTask = mutation({
 
     const now = Date.now();
     const order = await getNextOrderForColumn(ctx.db, columnId);
+    const normalizedDescription = description?.trim() ?? "";
     return await ctx.db.insert("tasks", {
       projectId,
       columnId,
       title: title.trim() || "Untitled task",
-      description: undefined,
-      dueDate: undefined,
-      priority: "medium",
+      description: normalizedDescription || undefined,
+      dueDate: dueDate ?? undefined,
+      priority: priority ?? "medium",
       order,
       assigneeIds: [],
       createdByUserId: userId,

@@ -99,6 +99,9 @@ export default function ProjectBoard({
     projectId: string;
     columnId: string;
     title: string;
+    description?: string;
+    dueDate?: number | null;
+    priority?: "low" | "medium" | "high";
   }) => Promise<string>;
   const reorderColumns = useMutation("planner:reorderColumns" as never) as unknown as (args: {
     projectId: string;
@@ -134,6 +137,9 @@ export default function ProjectBoard({
 
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<"low" | "medium" | "high">("medium");
   const [newTaskColumnId, setNewTaskColumnId] = useState<string | null>(null);
   const [inviteUsername, setInviteUsername] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -181,13 +187,29 @@ export default function ProjectBoard({
     }
   };
 
-  const handleCreateTask = async (columnId: string, titleInput?: string) => {
-    const title = (titleInput ?? newTaskTitle).trim();
-    if (!title) return;
+  const handleCreateTask = async (columnId: string) => {
+    const title = newTaskTitle.trim();
+    if (!title) {
+      toast.error("Task title is required");
+      return;
+    }
+    const normalizedDescription = newTaskDescription.trim();
+    const dueDateTimestamp = newTaskDueDate ? new Date(`${newTaskDueDate}T12:00:00`).getTime() : null;
     try {
-      await createTask({ projectId, columnId, title });
+      await createTask({
+        projectId,
+        columnId,
+        title,
+        description: normalizedDescription || undefined,
+        dueDate: dueDateTimestamp,
+        priority: newTaskPriority,
+      });
       setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskDueDate("");
+      setNewTaskPriority("medium");
       setNewTaskColumnId(null);
+      toast.success("Task created");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
     }
@@ -320,6 +342,9 @@ export default function ProjectBoard({
   const openCreateTaskModal = (columnId: string) => {
     setNewTaskColumnId(columnId);
     setNewTaskTitle("");
+    setNewTaskDescription("");
+    setNewTaskDueDate("");
+    setNewTaskPriority("medium");
   };
 
   if (board === undefined) {
@@ -654,6 +679,9 @@ export default function ProjectBoard({
           if (!open) {
             setNewTaskColumnId(null);
             setNewTaskTitle("");
+            setNewTaskDescription("");
+            setNewTaskDueDate("");
+            setNewTaskPriority("medium");
           }
         }}
       >
@@ -661,7 +689,7 @@ export default function ProjectBoard({
           <DialogHeader>
             <DialogTitle className="font-black uppercase tracking-tight">Create task</DialogTitle>
             <DialogDescription className="font-mono">
-              Enter a task title for this column.
+              Set title, notes, due date, and priority.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -672,14 +700,37 @@ export default function ProjectBoard({
               className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && newTaskColumnId) {
-                  handleCreateTask(newTaskColumnId, newTaskTitle);
+                  handleCreateTask(newTaskColumnId);
                 }
               }}
             />
+            <Textarea
+              value={newTaskDescription}
+              onChange={(e) => setNewTaskDescription(e.target.value)}
+              placeholder="Description / notes"
+              className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono min-h-24"
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input
+                type="date"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+                className="rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 font-mono"
+              />
+              <select
+                value={newTaskPriority}
+                onChange={(e) => setNewTaskPriority(e.target.value as "low" | "medium" | "high")}
+                className="h-10 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-950 px-3 font-mono text-sm"
+              >
+                <option value="low">low priority</option>
+                <option value="medium">medium priority</option>
+                <option value="high">high priority</option>
+              </select>
+            </div>
             <Button
               type="button"
               onClick={() => {
-                if (newTaskColumnId) handleCreateTask(newTaskColumnId, newTaskTitle);
+                if (newTaskColumnId) handleCreateTask(newTaskColumnId);
               }}
               className={`w-full rounded-none border-2 border-black dark:border-white font-mono font-bold uppercase tracking-wider ${ACCENT_PRIMARY_BUTTON_CLASS}`}
             >
