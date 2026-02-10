@@ -632,6 +632,16 @@ export default function ProjectBoard({
                           e.dataTransfer.setData("text/plain", task._id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
+                        onClick={() => openTaskEditor(task)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openTaskEditor(task);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open task ${task.title}`}
                         className="border-2 border-black dark:border-white bg-background dark:bg-zinc-950 p-3 cursor-grab active:cursor-grabbing"
                         title="Drag to move"
                       >
@@ -641,7 +651,10 @@ export default function ProjectBoard({
                             <button
                               type="button"
                               className="shrink-0 border-2 border-black dark:border-white bg-card dark:bg-zinc-900 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest"
-                              onClick={() => openTaskEditor(task)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openTaskEditor(task);
+                              }}
                             >
                               Details
                             </button>
@@ -649,6 +662,7 @@ export default function ProjectBoard({
                               <PopoverTrigger asChild>
                                 <button
                                   type="button"
+                                  onClick={(e) => e.stopPropagation()}
                                   className="shrink-0 border-2 border-black dark:border-white bg-card dark:bg-zinc-900 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest"
                                 >
                                   Assign
@@ -656,6 +670,7 @@ export default function ProjectBoard({
                               </PopoverTrigger>
                               <PopoverContent
                                 align="end"
+                                onClick={(e) => e.stopPropagation()}
                                 className="w-64 rounded-none border-2 border-black dark:border-white bg-white dark:bg-zinc-900"
                               >
                                 <div className="space-y-2">
