@@ -53,4 +53,29 @@ export default defineSchema({
   })
     .index("by_projectId_order", ["projectId", "order"])
     .index("by_columnId_order", ["columnId", "order"]),
+
+  tripIdeas: defineTable({
+    tripSlug: v.string(),
+    title: v.string(),
+    url: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
+    city: v.optional(v.string()),
+    day: v.optional(v.string()),
+    category: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_tripSlug_createdAt", ["tripSlug", "createdAt"]),
+
+  tripDayOverrides: defineTable({
+    tripSlug: v.string(),
+    dayId: v.string(),
+    city: v.optional(v.string()),
+    mainPlan: v.optional(v.string()),
+    otherPlans: v.array(v.string()),
+    foodIdeas: v.array(v.string()),
+    notes: v.array(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_tripSlug_dayId", ["tripSlug", "dayId"])
+    .index("by_tripSlug_updatedAt", ["tripSlug", "updatedAt"]),
 });

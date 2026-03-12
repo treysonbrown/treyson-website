@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as japan2026 from "../japan2026.js";
 import type * as planner from "../planner.js";
 import type * as users from "../users.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  japan2026: typeof japan2026;
   planner: typeof planner;
   users: typeof users;
 }>;

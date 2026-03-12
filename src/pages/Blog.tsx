@@ -39,7 +39,7 @@ const Blog = () => {
             </h1>
 
             <p className="text-xl font-mono text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Documenting the process of building Thesis ERP and other thoughts on tech and AI.
+              Documenting the process of building Moneton and other thoughts on tech and AI.
             </p>
 
             <div className="pt-4">
