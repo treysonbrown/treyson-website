@@ -639,7 +639,7 @@ const Stats = () => {
             Work in <br /> Public<span style={{ color: ACCENT_COLOR }}>.</span>
           </h1>
           <p className="text-xl md:text-2xl font-mono text-gray-600 dark:text-gray-400 max-w-2xl">
-            Daily development logs. Keeping strict accountability on the road to shipping Thesis.
+            Daily development logs. Keeping strict accountability on the road to shipping Moneton.
           </p>
         </section>
 

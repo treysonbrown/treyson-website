@@ -89,10 +89,10 @@ const ProjectDetail = () => {
               )}
 
               <Link
-                to="/#projects"
+                to="/directory"
                 className="inline-flex items-center gap-2 border-2 border-black bg-transparent px-4 py-2 font-mono text-xs font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:bg-black hover:text-white transition-all dark:border-white dark:text-white"
               >
-                ← Back to projects
+                ← Back to directory
               </Link>
             </div>
 

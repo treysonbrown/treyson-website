@@ -1,4 +1,4 @@
-import thesisImage from "@/assets/thesis.png";
+import monetonImage from "@/assets/moneton.png";
 import pharmaEduImage from "@/assets/pharma-edu.png";
 import statsImage from "@/assets/stats.png";
 import projectPlanner from "@/assets/project_planner.png"
@@ -17,16 +17,16 @@ export interface Project {
 
 export const projects: Project[] = [
   {
-    slug: "thesis-erp",
-    title: "Thesis ERP",
+    slug: "moneton",
+    title: "Moneton",
     shortDescription:
       "Grant financial management for PIs. Replacing complex spreadsheets with intuitive software to track burn rates and compliance.",
     longDescription:
-      "Thesis ERP is a focused tool for Principal Investigators to track post-award grant finances without wrestling spreadsheets. It brings together burn rate tracking, upcoming deadlines, and compliance tasks into a single, opinionated workflow that fits how researchers actually work.",
+      "Moneton is a focused tool for Principal Investigators to track post-award grant finances without wrestling spreadsheets. It brings together burn rate tracking, upcoming deadlines, and compliance tasks into a single, opinionated workflow that fits how researchers actually work.",
     tech: ["React", "Convex"],
-    liveUrl: "https://thesiserp.com",
+    liveUrl: "https://moneton.com",
     status: "PRODUCTION",
-    image: thesisImage,
+    image: monetonImage,
   },
   {
     slug: "stats",

@@ -168,6 +168,10 @@ export default function HeroLifeGrid({
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (isRunning) return;
+      // Prevent touch panning/zoom gestures from interrupting drawing on mobile.
+      if (e.pointerType === "touch") {
+        e.preventDefault();
+      }
 
       isDrawingRef.current = true;
       const cell = getCellFromEvent(e);
@@ -269,10 +273,11 @@ export default function HeroLifeGrid({
     >
       <canvas
         ref={canvasRef}
-        className="w-full h-full"
+        className="w-full h-full touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onPointerLeave={handlePointerUp}
       />
     </div>

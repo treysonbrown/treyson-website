@@ -12,6 +12,7 @@ interface NavbarProps {
   showHomeLink?: boolean;
   useAbsolutePaths?: boolean;
   activeSection?: string | null;
+  navItems?: NavItem[];
 }
 
 interface NavItem {
@@ -23,6 +24,7 @@ const Navbar = ({
   showHomeLink = false,
   useAbsolutePaths = false,
   activeSection,
+  navItems,
 }: NavbarProps) => {
   const { isSignedIn } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,13 +34,13 @@ const Navbar = ({
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
-  const navItems: NavItem[] = [
+  const defaultNavItems: NavItem[] = [
     showHomeLink ? { label: "Home", to: "/" } : null,
-    { label: "About", to: useAbsolutePaths ? "/#about" : "#about" },
-    { label: "Projects", to: useAbsolutePaths ? "/#projects" : "#projects" },
+    { label: "Directory", to: "/directory" },
     isSignedIn ? { label: "Planner", to: "/plan" } : null,
     { label: "Contact", to: useAbsolutePaths ? "/#contact" : "#contact" },
   ].filter((item): item is NavItem => Boolean(item));
+  const resolvedNavItems = navItems ?? defaultNavItems;
 
   const normalizePath = (path: string) => {
     const trimmed = path.replace(/\/+$/, "");
@@ -145,7 +147,7 @@ const Navbar = ({
           {/* DESKTOP NAV */}
           <div className="hidden md:flex items-center gap-6">
             <div className="flex items-center gap-8">
-              {navItems.map((item) => {
+              {resolvedNavItems.map((item) => {
                 const isActive = isNavItemActive(item);
                 return (
                   <Link
@@ -229,7 +231,7 @@ const Navbar = ({
 
           {/* Drawer Links */}
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-            {navItems.map((item, index) => {
+            {resolvedNavItems.map((item, index) => {
               const isActive = isNavItemActive(item);
               return (
                 <Link
